@@ -3,9 +3,9 @@ spring:
     name: ai-chatbot-saas
 
   datasource:
-    url: jdbc:postgresql://localhost:5432/mydatabase
-    username: postgres
-    password: riyaN@05
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mydatabase}
+    username: ${SPRING_DATASOURCE_USERNAME:postgres}
+    password: ${SPRING_DATASOURCE_PASSWORD:riyaN@05}
     driver-class-name: org.postgresql.Driver
 
   jpa:
