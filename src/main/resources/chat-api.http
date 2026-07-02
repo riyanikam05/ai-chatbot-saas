@@ -1,0 +1,17 @@
+### Test 1
+POST http://localhost:8081/api/chat
+Content-Type: application/json
+
+{
+  "message": "Hi",
+  "sessionId": "user1"
+}
+
+### Test 2
+POST http://localhost:8081/api/chat
+Content-Type: application/json
+
+{
+  "message": "Tell me a joke",
+  "sessionId": "user1"
+}

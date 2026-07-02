@@ -1,0 +1,29 @@
+{
+  "permissions": {
+    "allow": [
+      "Exec(rm)",
+      "Exec(Remove-Item)",
+      "Exec(New-Item)",
+      "Exec(git status)",
+      "Exec(git log)",
+      "Exec(./mvnw clean)",
+      "Exec(./mvnw test)",
+      "Exec(cd)",
+      "Exec(mvn compile)",
+      "Exec(.\\mvnw.cmd compile)",
+      "Exec(npm run)",
+      "Exec(npm install)",
+      "Exec(docker compose)",
+      "Exec(netstat)",
+      "Exec(tasklist)",
+      "Exec(taskkill)",
+      "Exec(sc query)",
+      "Exec(wmic service)",
+      "Exec(findstr)",
+      "Exec(wmic process)",
+      "Exec(\"C:\\Program Files\\Java\\jdk-21.0.10\\bin\\java.exe\")",
+      "Exec(mvn)",
+      "Exec(.\\mvnw.cmd)"
+    ]
+  }
+}
