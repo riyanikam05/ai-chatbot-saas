@@ -2,7 +2,7 @@
 
 # 🤖 AI Chatbot SaaS Backend
 
-A production-style REST API for an AI chatbot, built with Spring Boot, PostgreSQL, Redis, Docker, and Ollama.
+A backend learning project for a conversational AI application, built with Java, Spring Boot, PostgreSQL, Redis, Docker, and Ollama.
 
 ![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
 ![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.2.5-6DB33F?style=for-the-badge&logo=spring-boot&logoColor=white)
@@ -11,55 +11,49 @@ A production-style REST API for an AI chatbot, built with Spring Boot, PostgreSQ
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
 ![Ollama](https://img.shields.io/badge/Ollama-Llama_3.2-000000?style=for-the-badge&logo=ollama&logoColor=white)
 
-JWT-secured chat APIs with persistent conversation history, Redis rate limiting, and local AI responses through Ollama.
-
-[Features](#-features) · [Tech Stack](#-tech-stack) · [Getting Started](#-getting-started) · [API Reference](#-api-reference) · [Architecture](#-architecture)
-
 </div>
 
 ---
 
-## 📌 About the Project
+## 📌 About
 
-AI Chatbot SaaS Backend is a REST API for a conversational AI application.
+This is a backend learning project for building a conversational AI application.
 
-It allows users to register, log in, create conversations, send messages, and receive AI-generated responses. User accounts, conversations, and messages are stored in PostgreSQL. Redis enforces per-user rate limits, while Ollama runs the Llama 3.2 model locally.
-
-This project focuses on backend engineering concepts such as authentication, REST API design, database migrations, Docker-based services, and local LLM integration.
+I built this project to understand how a backend application is structured and how different technologies work together. It includes user authentication, conversation management, PostgreSQL storage, Redis rate limiting, Docker services, and local AI responses through Ollama.
 
 ---
 
-## ✨ Features
+## ✨ Current Features
 
-- 🔐 **JWT Authentication** — Register and log in with email and password. Protected endpoints require a valid JWT token.
-- 🧠 **Local AI Integration** — Uses Ollama and the Llama 3.2 model locally, with no paid API key required.
-- 💬 **Persistent Conversations** — Stores conversations and messages in PostgreSQL.
-- 🗂️ **Conversation Management** — Create, retrieve, and delete conversations through REST APIs.
-- ⚡ **Redis Rate Limiting** — Limits each user to 20 messages per minute.
-- 🗃️ **Database Migrations** — Uses Flyway to version and manage the database schema.
-- 🐳 **Docker Compose Setup** — Runs PostgreSQL, Redis, and Ollama as Docker services.
-- 📊 **Health Endpoints** — Spring Boot Actuator exposes health and application information.
+- 🔐 **JWT Authentication** — User registration and login with protected endpoints.
+- 💬 **Conversation Management** — Create, retrieve, and delete conversations through REST APIs.
+- 📝 **Persistent Chat History** — Store user messages and AI responses in PostgreSQL.
+- 🧠 **Local AI Integration** — Generate responses using Ollama and Llama 3.2.
+- ⚡ **Redis Rate Limiting** — Limit each user to 20 messages per minute.
+- 🗃️ **Database Migrations** — Manage database schema with Flyway.
+- 🐳 **Docker Services** — Run PostgreSQL, Redis, and Ollama with Docker Compose.
+- 📊 **Health Endpoint** — Expose health information through Spring Boot Actuator.
 
 ---
 
-## 🛠 Tech Stack
+## 🛠 Technologies Used
 
-| Layer | Technology |
-|---|---|
+| Category | Technology |
+| --- | --- |
 | Language | Java 21 |
-| Framework | Spring Boot 3.2.5 |
+| Backend Framework | Spring Boot 3.2.5 |
 | Database | PostgreSQL 16 |
 | Cache / Rate Limiting | Redis 7 |
-| Authentication | Spring Security, JWT |
+| Authentication | Spring Security and JWT |
 | Database Migrations | Flyway |
-| AI Model | Ollama, Llama 3.2 |
+| AI Model | Ollama with Llama 3.2 |
 | HTTP Client | RestTemplate |
-| Containerization | Docker, Docker Compose |
+| Containerization | Docker and Docker Compose |
 | API Testing | Postman |
 
 ---
 
-## 🚀 Getting Started
+## 🚀 How to Run Locally
 
 ### Prerequisites
 
@@ -72,27 +66,31 @@ This project focuses on backend engineering concepts such as authentication, RES
 ```bash
 git clone https://github.com/riyanikam05/ai-chatbot-saas.git
 cd ai-chatbot-saas
-2. Start PostgreSQL, Redis, and Ollama
+```
+### 2. Start PostgreSQL, Redis, and Ollama
+```bash
 docker compose up -d postgres redis ollama
-
+```
 Verify that the services are running:
-
+```bash
 docker ps
-
+```
 You should see containers for PostgreSQL, Redis, and Ollama.
 
-3. Download the AI model
+### 3. Download the AI model
+```bash
 docker exec -it ai-chatbot-saas-ollama-1 ollama pull llama3.2
-
+```
 Verify the downloaded model:
-
+```bash
 docker exec -it ai-chatbot-saas-ollama-1 ollama list
-
+```
 Expected output:
-
+```bash
 llama3.2:latest
-4. Configure the backend
-
+```
+### 4. Configure the backend
+```bash
 Update src/main/resources/application.yml if required:
 
 spring:
@@ -112,20 +110,23 @@ server:
 ollama:
   base-url: http://localhost:11434
   model: llama3.2:latest
-5. Run the backend
+```
+### 5. Run the backend
 
 For Windows PowerShell:
-
+```bash
 .\mvnw.cmd spring-boot:run
-
+```
 For macOS/Linux:
-
+```bash
 ./mvnw spring-boot:run
-
+```
 The API runs at:
-
+```bash
 http://localhost:8081
-📁 Project Structure
+```
+## 📁 Project Structure
+```bash
 ai-chatbot-saas/
 ├── src/
 │   └── main/
@@ -153,14 +154,13 @@ ai-chatbot-saas/
 │       └── resources/
 │           ├── application.yml
 │           └── db/migration/
-│               ├── V1__create_users.sql
-│               ├── V2__create_conversations.sql
-│               └── V3__create_messages.sql
 ├── compose.yaml
 ├── Dockerfile
 ├── pom.xml
 └── README.md
-🗄 Database Schema
+```
+## 🗄 Database Schema
+```bash
 users
   id, name, email, password, created_at
 
@@ -169,31 +169,30 @@ conversations
 
 messages
   id, conversation_id, role, content, created_at
+```
+The schema is managed using Flyway migrations.
 
-The schema is managed using Flyway migrations that run automatically when the application starts.
-
-📡 API Reference
-Authentication
-Method	Endpoint	Authentication	Description
-POST	/api/auth/register	No	Register a new user
-POST	/api/auth/login	No	Log in and receive a JWT token
-GET	/api/auth/me	Yes	Get the current user's details
+## 📡 Main API Endpoints
+# Authentication
+```bash
+Method	Endpoint	Description
+POST	/api/auth/register	Register a new user
+POST	/api/auth/login	Log in and receive a JWT token
+GET	/api/auth/me	Get current user details
 Conversations
-Method	Endpoint	Authentication	Description
-POST	/api/conversations	Yes	Create a conversation
-GET	/api/conversations	Yes	Get all conversations for the current user
-DELETE	/api/conversations/{id}	Yes	Delete a conversation
-GET	/api/conversations/{id}/messages	Yes	Get all messages in a conversation
-POST	/api/conversations/{id}/messages	Yes	Send a message and receive an AI response
-Send Message Example
-{
-  "message": "Explain recursion in simple words"
-}
-
-Protected endpoints require:
+Method	Endpoint	Description
+POST	/api/conversations	Create a new conversation
+GET	/api/conversations	Get all conversations for the logged-in user
+DELETE	/api/conversations/{id}	Delete a conversation
+GET	/api/conversations/{id}/messages	Get messages in a conversation
+POST	/api/conversations/{id}/messages	Send a message and receive an AI response
+```
+Protected endpoints require this header:
 
 Authorization: Bearer <your_jwt_token>
-🏗 Architecture
+
+## 🏗 Current Architecture
+```bash
 Client / Postman
       │
       │ HTTP requests with JWT
@@ -204,43 +203,29 @@ Spring Boot Backend
       │   └── Users, conversations, and messages
       │
       ├── Redis
-      │   └── Per-user rate limiting
+      │   └── Rate limiting
       │
-      └── Ollama REST API
+      └── Ollama
           └── Llama 3.2 local model
-Chat Message Flow
-A client sends a message to the Spring Boot backend.
-Spring Security validates the JWT token.
-ChatService verifies that the conversation belongs to the authenticated user.
-Redis checks the user's rate limit.
-The backend loads recent conversation messages from PostgreSQL.
-OllamaService sends the message history to Ollama.
-The AI response is saved in PostgreSQL.
-The API returns the AI response as JSON.
-⚙️ Configuration
-Variable	Default Value	Description
-JWT_SECRET	Development value	Secret used to sign JWT tokens
-OLLAMA_BASE_URL	http://localhost:11434	Ollama API URL
-OLLAMA_MODEL	llama3.2:latest	Ollama model name
-SPRING_DATASOURCE_URL	jdbc:postgresql://localhost:5432/mydatabase	PostgreSQL connection URL
-GOOGLE_CLIENT_ID	placeholder	Google OAuth client ID
-GOOGLE_CLIENT_SECRET	placeholder	Google OAuth client secret
-🚧 Final Planned Feature
+```
+## 🚧 Next Feature
  Add PDF upload and document question answering using RAG.
-📚 What I Learned
-JWT authentication and Spring Security filter chains
-REST API design with Spring Boot
-PostgreSQL database design and Flyway migrations
-Redis counters for rate limiting
-Docker Compose for multi-service applications
-Sending conversation context to a local LLM through Ollama
-Designing a backend application with layered services and repositories
-📄 License
+## 📚 What I Learned Through This Project
+How to structure a Spring Boot backend using controllers, services, repositories, DTOs, and configuration classes.
+How to build REST APIs for user authentication, conversations, and chat messages.
+How JWT authentication works with Spring Security and protected endpoints.
+How to store and retrieve application data using PostgreSQL and Spring Data JPA.
+How to manage database changes using Flyway migrations.
+How Redis can be used to implement per-user API rate limiting.
+How Docker Compose can run PostgreSQL, Redis, and Ollama as separate services.
+How to send conversation history from a Java backend to a local LLM through the Ollama REST API.
+How to test backend endpoints using Postman.
+## 📄 License
 
 This project is for learning and portfolio purposes.
 
 <div align="center">
 
-Built by Riya Nikam · BTech Project · 2026
+Built by Riya Nikam as a learning project · 2026
 
 </div>
