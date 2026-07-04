@@ -2,9 +2,9 @@ services:
   postgres:
     image: 'postgres:16-alpine'
     environment:
-      - POSTGRES_DB=mydatabase
-      - POSTGRES_PASSWORD=riyaN@05
-      - POSTGRES_USER=postgres
+      - POSTGRES_DB=${mydatabase}
+      - POSTGRES_PASSWORD=${riyaN@05}
+      - POSTGRES_USER=${postgres}
     ports:
       - '5432:5432'
     volumes:
@@ -34,9 +34,9 @@ services:
     ports:
       - '8080:8080'
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/mydatabase
-      - SPRING_DATASOURCE_USERNAME=postgres
-      - SPRING_DATASOURCE_PASSWORD=riyaN@05
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/${mydatabase}
+      - SPRING_DATASOURCE_USERNAME=${postgres}
+      - SPRING_DATASOURCE_PASSWORD=${riyaN@05}
       - SPRING_DATA_REDIS_HOST=redis
       - JWT_SECRET=${JWT_SECRET}
       - OLLAMA_BASE_URL=http://ollama:11434
@@ -48,13 +48,6 @@ services:
         condition: service_started
       ollama:
         condition: service_started
-
-  frontend:
-    build: ./frontend
-    ports:
-      - '3000:80'
-    depends_on:
-      - backend
 
 volumes:
   postgres_data:

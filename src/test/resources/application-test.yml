@@ -38,8 +38,8 @@ jwt:
   expiry: 86400000
 
 ollama:
-  base-url: http://localhost:11434
-  model: llama3.2
+  base-url: http://127.0.0.1:11434
+  model: qwen2.5:0.5b
 
 management:
   endpoints:
