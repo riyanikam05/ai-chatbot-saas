@@ -40,42 +40,42 @@ public class OllamaService {
     }
 
     public String chat(List<Map<String, String>> messageHistory) {
-        String url = baseUrl + "/api/chat";
+    String url = baseUrl + "/api/chat";
 
-        Map<String, Object> requestBody = Map.of(
-                "model", model,
+    try {
+        String jsonBody = objectMapper.writeValueAsString(Map.of(
+                "model", model.trim(),
                 "messages", messageHistory,
                 "stream", false
-        );
+        ));
 
         HttpHeaders headers = new HttpHeaders();
         headers.setContentType(MediaType.APPLICATION_JSON);
 
-        HttpEntity<Map<String, Object>> request =
-                new HttpEntity<>(requestBody, headers);
+        HttpEntity<String> request = new HttpEntity<>(jsonBody, headers);
 
-        try {
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    url,
-                    request,
-                    String.class
-            );
+        ResponseEntity<String> response = restTemplate.postForEntity(
+                url,
+                request,
+                String.class
+        );
 
-            JsonNode root = objectMapper.readTree(response.getBody());
+        JsonNode root = objectMapper.readTree(response.getBody());
+        JsonNode contentNode = root.path("message").path("content");
 
-            JsonNode contentNode = root.path("message").path("content");
-
-            if (contentNode.isMissingNode() || contentNode.asText().isBlank()) {
-                throw new RuntimeException("Ollama returned no assistant message");
-            }
-
-            return contentNode.asText();
-
-        } catch (Exception e) {
-            throw new RuntimeException(
-                    "Failed to get response from Ollama: " + e.getMessage(),
-                    e
-            );
+        if (contentNode.isMissingNode() || contentNode.asText().isBlank()) {
+            throw new RuntimeException("Ollama returned no assistant message");
         }
+
+        return contentNode.asText();
+
+    } catch (Exception e) {
+        throw new RuntimeException(
+                "Ollama request failed. URL=" + url
+                        + ", model=" + model.trim()
+                        + ", response=" + e.getMessage(),
+                e
+        );
     }
+}
 }

@@ -1,25 +1,20 @@
 spring:
+  application:
+    name: ai-chatbot-saas-test
+
   datasource:
-    url: jdbc:h2:mem:testdb
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
     driver-class-name: org.h2.Driver
     username: sa
-    password: 
+    password: ""
 
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
-    properties:
-      hibernate:
-        dialect: org.hibernate.dialect.H2Dialect
+    show-sql: false
 
   flyway:
     enabled: false
-
-  autoconfigure:
-    exclude:
-      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
-      - org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration
 
   security:
     oauth2:
@@ -28,21 +23,14 @@ spring:
           google:
             client-id: test-client-id
             client-secret: test-client-secret
-            scope: email, profile
-
-server:
-  port: 8080
+            scope:
+              - email
+              - profile
 
 jwt:
-  secret: test-secret-key-for-testing-only
+  secret: test-secret-key-for-testing-only-must-be-long-enough
   expiry: 86400000
 
 ollama:
   base-url: http://127.0.0.1:11434
-  model: qwen2.5:0.5b
-
-management:
-  endpoints:
-    web:
-      exposure:
-        include: health, info
+  model: qwen2.5:1.5b

@@ -3,48 +3,30 @@ spring:
     name: ai-chatbot-saas
 
   datasource:
-    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/mydatabase}
-    username: ${SPRING_DATASOURCE_USERNAME:postgres}
-    password: ${SPRING_DATASOURCE_PASSWORD:riyaN@05}
+    url: jdbc:postgresql://localhost:5432/mydatabase
+    username: postgres
+    password: riyaN@05
     driver-class-name: org.postgresql.Driver
 
   jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
     properties:
       hibernate:
-        dialect: org.hibernate.dialect.PostgreSQLDialect
+        ddl-auto: update
+    show-sql: false
 
   flyway:
     enabled: true
-    locations: classpath:db/migration
-
-  data:
-    redis:
-      host: localhost
-      port: 6379
-
-  security:
-    oauth2:
-      client:
-        registration:
-          google:
-            client-id: ${GOOGLE_CLIENT_ID:placeholder}
-            client-secret: ${GOOGLE_CLIENT_SECRET:placeholder}
-            scope: email, profile
 
 server:
   port: 8081
 
 jwt:
-  secret: ${JWT_SECRET:mySecretKeyForDevelopmentOnlyPleaseChangeInProduction}
+  secret: 2mSzRlG+kZeIee1BMluHGqUgtKT2ywlZ2pMlY5dG6HZxPpTjxZ84Rf5vyYh0TU8G
   expiry: 86400000
 
-# Using Ollama for free local AI
 ollama:
-  base-url: ${OLLAMA_BASE_URL:http://127.0.0.1:11434}
-  model: ${OLLAMA_MODEL:qwen2.5:0.5b}
+  base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
+  model: ${OLLAMA_MODEL:qwen2.5:1.5b}
 
 management:
   endpoints:

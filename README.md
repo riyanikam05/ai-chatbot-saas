@@ -9,7 +9,7 @@ A backend learning project for a conversational AI application, built with Java,
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-16-316192?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Redis](https://img.shields.io/badge/Redis-7-DC382D?style=for-the-badge&logo=redis&logoColor=white)
 ![Docker](https://img.shields.io/badge/Docker-Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
-![Ollama](https://img.shields.io/badge/Ollama-Llama_3.2-000000?style=for-the-badge&logo=ollama&logoColor=white)
+![Ollama](https://img.shields.io/badge/Ollama-Qwen_2.5-000000?style=for-the-badge&logo=ollama&logoColor=white)
 
 </div>
 
@@ -28,7 +28,7 @@ I built this project to understand how a backend application is structured and h
 - 🔐 **JWT Authentication** — User registration and login with protected endpoints.
 - 💬 **Conversation Management** — Create, retrieve, and delete conversations through REST APIs.
 - 📝 **Persistent Chat History** — Store user messages and AI responses in PostgreSQL.
-- 🧠 **Local AI Integration** — Generate responses using Ollama and Llama 3.2.
+- 🧠 **Local AI Integration** — Generate responses using Ollama and Qwen 2.5.
 - ⚡ **Redis Rate Limiting** — Limit each user to 20 messages per minute.
 - 🗃️ **Database Migrations** — Manage database schema with Flyway.
 - 🐳 **Docker Services** — Run PostgreSQL, Redis, and Ollama with Docker Compose.
@@ -46,7 +46,7 @@ I built this project to understand how a backend application is structured and h
 | Cache / Rate Limiting | Redis 7 |
 | Authentication | Spring Security and JWT |
 | Database Migrations | Flyway |
-| AI Model | Ollama with Llama 3.2 |
+| AI Model | Ollama with Qwen 2.5 |
 | HTTP Client | RestTemplate |
 | Containerization | Docker and Docker Compose |
 | API Testing | Postman |
@@ -79,7 +79,7 @@ You should see containers for PostgreSQL, Redis, and Ollama.
 
 ### 3. Download the AI model
 ```bash
-docker exec -it ai-chatbot-saas-ollama-1 ollama pull llama3.2
+docker exec -it ai-chatbot-saas-ollama-1 ollama pull qwen2.5:1.5b
 ```
 Verify the downloaded model:
 ```bash
@@ -87,7 +87,7 @@ docker exec -it ai-chatbot-saas-ollama-1 ollama list
 ```
 Expected output:
 ```bash
-llama3.2:latest
+qwen2.5:1.5b
 ```
 ### 4. Configure the backend
 ```bash
@@ -109,7 +109,7 @@ server:
 
 ollama:
   base-url: http://localhost:11434
-  model: llama3.2:latest
+  model: qwen2.5:1.5b
 ```
 ### 5. Run the backend
 
@@ -206,7 +206,7 @@ Spring Boot Backend
       │   └── Rate limiting
       │
       └── Ollama
-          └── Llama 3.2 local model
+          └── Qwen 2.5 local model
 ```
 ## 🚧 Next Feature
  Add PDF upload and document question answering using RAG.

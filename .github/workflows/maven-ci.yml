@@ -25,17 +25,7 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-
-      # Starts a local Redis instance since your application.yml relies on it
-      redis:
-        image: redis:7
-        ports:
-          - 6379:6379
-        options: >-
-          --health-cmd "redis-cli ping"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+  
 
     steps:
     - name: Checkout code
@@ -53,6 +43,4 @@ jobs:
         SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/mydatabase
         SPRING_DATASOURCE_USERNAME: postgres
         SPRING_DATASOURCE_PASSWORD: password
-        SPRING_DATA_REDIS_HOST: localhost
-        SPRING_DATA_REDIS_PORT: 6379
       run: ./mvnw clean verify

@@ -23,7 +23,25 @@
       "Exec(wmic process)",
       "Exec(\"C:\\Program Files\\Java\\jdk-21.0.10\\bin\\java.exe\")",
       "Exec(mvn)",
-      "Exec(.\\mvnw.cmd)"
+      "Exec(.\\mvnw.cmd)",
+      "Exec(./mvnw)",
+      "Exec(curl)",
+      "Exec(Invoke-WebRequest)",
+      "Exec(Write-Host)",
+      "Exec(docker ps)",
+      "Exec(docker exec)",
+      "Exec(content=\"Hello\"}))",
+      "Exec(Get-Process)",
+      "Exec(docker network)",
+      "Exec(stream=$false})",
+      "Exec(ConvertTo-Json)",
+      "Exec(docker restart)",
+      "Exec(docker start)",
+      "Exec(Start-Process)",
+      "Exec(Start-Sleep)",
+      "Exec(ls)",
+      "Exec(Select-Object)",
+      "Exec(curl.exe)"
     ]
   }
 }

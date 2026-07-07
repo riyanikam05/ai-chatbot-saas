@@ -5,34 +5,23 @@ import com.riya.aichatbot.auth.dto.LoginRequest;
 import com.riya.aichatbot.auth.dto.RegisterRequest;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration;
-import org.springframework.boot.autoconfigure.flyway.FlywayAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.MediaType;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
-@EnableAutoConfiguration(exclude = {RedisAutoConfiguration.class, FlywayAutoConfiguration.class})
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 class AuthControllerTest {
 
     @Autowired
     private MockMvc mockMvc;
-
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private PasswordEncoder passwordEncoder;
 
     @Autowired
     private ObjectMapper objectMapper;
@@ -58,7 +47,7 @@ class AuthControllerTest {
     void testRegisterDuplicateEmail() throws Exception {
         RegisterRequest request = new RegisterRequest();
         request.setName("Test User");
-        request.setEmail("test@example.com");
+        request.setEmail("duplicate@example.com");
         request.setPassword("password123");
 
         mockMvc.perform(post("/api/auth/register")
@@ -100,7 +89,7 @@ class AuthControllerTest {
     void testLoginWrongPassword() throws Exception {
         RegisterRequest registerRequest = new RegisterRequest();
         registerRequest.setName("Test User");
-        registerRequest.setEmail("wrong@example.com");
+        registerRequest.setEmail("wrong-password@example.com");
         registerRequest.setPassword("password123");
 
         mockMvc.perform(post("/api/auth/register")
@@ -109,12 +98,13 @@ class AuthControllerTest {
                 .andExpect(status().isOk());
 
         LoginRequest loginRequest = new LoginRequest();
-        loginRequest.setEmail("wrong@example.com");
+        loginRequest.setEmail("wrong-password@example.com");
         loginRequest.setPassword("wrongpassword");
 
         mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(loginRequest)))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.error").exists());
     }
 }

@@ -1,17 +1,14 @@
 package com.riya.aichatbot.chat;
 
 import com.riya.aichatbot.ai.OllamaService;
-import com.riya.aichatbot.chat.dto.MessageResponse;
 import com.riya.aichatbot.chat.dto.ConversationResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.redis.core.RedisTemplate;
+import com.riya.aichatbot.chat.dto.MessageResponse;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,14 +17,15 @@ public class ChatService {
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
     private final OllamaService ollamaService;
-    private final RedisTemplate<String, Object> redisTemplate;
 
-    public ChatService(ConversationRepository conversationRepository, MessageRepository messageRepository,
-                       OllamaService ollamaService, @Autowired(required = false) RedisTemplate<String, Object> redisTemplate) {
+    public ChatService(
+            ConversationRepository conversationRepository,
+            MessageRepository messageRepository,
+            OllamaService ollamaService
+    ) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
         this.ollamaService = ollamaService;
-        this.redisTemplate = redisTemplate;
     }
 
     @Transactional
@@ -39,21 +37,26 @@ public class ChatService {
             throw new RuntimeException("Access denied: conversation does not belong to user");
         }
 
-        checkRateLimit(userId);
-
         Message userMsg = Message.builder()
                 .conversationId(conversationId)
                 .role("user")
                 .content(userMessage)
                 .build();
+
         messageRepository.save(userMsg);
 
-        List<Message> allHistory = messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
-        List<Message> history = allHistory.size() > 20 
+        List<Message> allHistory =
+                messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+
+        List<Message> recentHistory = allHistory.size() > 20
                 ? allHistory.subList(allHistory.size() - 20, allHistory.size())
                 : allHistory;
-        List<Map<String, String>> messageHistory = history.stream()
-                .map(msg -> Map.of("role", msg.getRole(), "content", msg.getContent()))
+
+        List<Map<String, String>> messageHistory = recentHistory.stream()
+                .map(message -> Map.of(
+                        "role", message.getRole(),
+                        "content", message.getContent()
+                ))
                 .collect(Collectors.toList());
 
         String aiResponse = ollamaService.chat(messageHistory);
@@ -63,14 +66,16 @@ public class ChatService {
                 .role("assistant")
                 .content(aiResponse)
                 .build();
+
         messageRepository.save(assistantMsg);
 
         conversation.setUpdatedAt(LocalDateTime.now());
 
         if (allHistory.size() == 1) {
-            String title = userMessage.length() > 50 
-                    ? userMessage.substring(0, 50) + "..." 
+            String title = userMessage.length() > 50
+                    ? userMessage.substring(0, 50) + "..."
                     : userMessage;
+
             conversation.setTitle(title);
         }
 
@@ -84,29 +89,13 @@ public class ChatService {
                 .build();
     }
 
-    private void checkRateLimit(Long userId) {
-        if (redisTemplate == null) {
-            return; // Skip rate limiting if Redis is not available
-        }
-        
-        String key = "ratelimit:" + userId;
-        Long count = redisTemplate.opsForValue().increment(key);
-
-        if (count != null && count == 1) {
-            redisTemplate.expire(key, 1, TimeUnit.MINUTES);
-        }
-
-        if (count != null && count > 20) {
-            throw new RuntimeException("Rate limit exceeded. You can send 20 messages per minute. Please wait a moment.");
-        }
-    }
-
     @Transactional
     public ConversationResponse createConversation(Long userId) {
         Conversation conversation = Conversation.builder()
                 .userId(userId)
                 .title("New Chat")
                 .build();
+
         conversation = conversationRepository.save(conversation);
 
         return ConversationResponse.builder()
@@ -119,11 +108,11 @@ public class ChatService {
 
     public List<ConversationResponse> getConversations(Long userId) {
         return conversationRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
-                .map(conv -> ConversationResponse.builder()
-                        .id(conv.getId())
-                        .title(conv.getTitle())
-                        .createdAt(conv.getCreatedAt())
-                        .updatedAt(conv.getUpdatedAt())
+                .map(conversation -> ConversationResponse.builder()
+                        .id(conversation.getId())
+                        .title(conversation.getTitle())
+                        .createdAt(conversation.getCreatedAt())
+                        .updatedAt(conversation.getUpdatedAt())
                         .build())
                 .collect(Collectors.toList());
     }
@@ -137,11 +126,11 @@ public class ChatService {
         }
 
         return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
-                .map(msg -> MessageResponse.builder()
-                        .id(msg.getId())
-                        .role(msg.getRole())
-                        .content(msg.getContent())
-                        .createdAt(msg.getCreatedAt())
+                .map(message -> MessageResponse.builder()
+                        .id(message.getId())
+                        .role(message.getRole())
+                        .content(message.getContent())
+                        .createdAt(message.getCreatedAt())
                         .build())
                 .collect(Collectors.toList());
     }
