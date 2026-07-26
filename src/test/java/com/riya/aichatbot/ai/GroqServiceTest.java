@@ -38,18 +38,18 @@ class OllamaServiceTest {
     private JsonNode mockContentNode;
 
     @InjectMocks
-    private OllamaService ollamaService;
+    private GroqService groqService;
 
     @Test
     void testChatMethodExists() throws Exception {
         // Set the required fields using reflection
-        java.lang.reflect.Field baseUrlField = OllamaService.class.getDeclaredField("baseUrl");
+        java.lang.reflect.Field baseUrlField = GroqService.class.getDeclaredField("baseUrl");
         baseUrlField.setAccessible(true);
-        baseUrlField.set(ollamaService, "http://localhost:11434");
+        baseUrlField.set(groqService, "http://localhost:11434");
 
-        java.lang.reflect.Field modelField = OllamaService.class.getDeclaredField("model");
+        java.lang.reflect.Field modelField = GroqService.class.getDeclaredField("model");
         modelField.setAccessible(true);
-        modelField.set(ollamaService, "qwen2.5:1.5b");
+        modelField.set(groqService, "qwen2.5:1.5b");
 
         List<Map<String, String>> history = List.of(
                 Map.of("role", "user", "content", "Hello")
@@ -69,7 +69,7 @@ class OllamaServiceTest {
         when(mockContentNode.isMissingNode()).thenReturn(false);
         when(mockContentNode.asText()).thenReturn("Hi there!");
 
-        String result = ollamaService.chat(history);
+        String result = groqService.chat(history);
         assertEquals("Hi there!", result);
     }
 }

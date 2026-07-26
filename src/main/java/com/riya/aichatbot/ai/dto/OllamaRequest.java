@@ -13,7 +13,14 @@ import java.util.Map;
 @AllArgsConstructor
 @Builder
 public class OllamaRequest {
-    private String model;
-    private List<Map<String, String>> messages;
-    private boolean stream;
+
+private String model;
+
+private List<Map<String, String>> messages;
+
+@Builder.Default
+private boolean stream = false;
+
+private Map<String, Object> options;
+
 }

@@ -1,6 +1,6 @@
 package com.riya.aichatbot.chat;
 
-import com.riya.aichatbot.ai.OllamaService;
+import com.riya.aichatbot.ai.GroqService;
 import com.riya.aichatbot.chat.dto.ConversationResponse;
 import com.riya.aichatbot.chat.dto.MessageResponse;
 import org.springframework.stereotype.Service;
@@ -16,16 +16,16 @@ public class ChatService {
 
     private final ConversationRepository conversationRepository;
     private final MessageRepository messageRepository;
-    private final OllamaService ollamaService;
+    private final GroqService groqService;
 
     public ChatService(
             ConversationRepository conversationRepository,
             MessageRepository messageRepository,
-            OllamaService ollamaService
+            GroqService groqService
     ) {
         this.conversationRepository = conversationRepository;
         this.messageRepository = messageRepository;
-        this.ollamaService = ollamaService;
+        this.groqService = groqService;
     }
 
     @Transactional
@@ -59,7 +59,7 @@ public class ChatService {
                 ))
                 .collect(Collectors.toList());
 
-        String aiResponse = ollamaService.chat(messageHistory);
+        String aiResponse = groqService.chat(messageHistory);
 
         Message assistantMsg = Message.builder()
                 .conversationId(conversationId)

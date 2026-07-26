@@ -4,14 +4,12 @@ spring:
 
   datasource:
     url: jdbc:postgresql://localhost:5432/mydatabase
-    username: postgres
-    password: riyaN@05
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
     driver-class-name: org.postgresql.Driver
-
   jpa:
-    properties:
-      hibernate:
-        ddl-auto: update
+    hibernate:
+      ddl-auto: validate
     show-sql: false
 
   flyway:
@@ -21,12 +19,13 @@ server:
   port: 8081
 
 jwt:
-  secret: 2mSzRlG+kZeIee1BMluHGqUgtKT2ywlZ2pMlY5dG6HZxPpTjxZ84Rf5vyYh0TU8G
+  secret: ${JWT_SECRET}
   expiry: 86400000
 
-ollama:
-  base-url: ${OLLAMA_BASE_URL:http://ollama:11434}
-  model: ${OLLAMA_MODEL:qwen2.5:1.5b}
+groq:
+  base-url: https://api.groq.com/openai/v1
+  model: llama3-8b-8192
+  api-key: ${GROQ_API_KEY}
 
 management:
   endpoints:

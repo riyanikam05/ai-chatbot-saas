@@ -36,3 +36,6 @@ build/
 
 # VS Code local launch settings if they contain secrets
 .vscode/launch.json
+
+# Devin
+.devin/config.local.json

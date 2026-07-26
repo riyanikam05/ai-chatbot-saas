@@ -3,6 +3,7 @@ package com.riya.aichatbot.auth;
 import com.riya.aichatbot.auth.dto.AuthResponse;
 import com.riya.aichatbot.auth.dto.LoginRequest;
 import com.riya.aichatbot.auth.dto.RegisterRequest;
+import com.riya.aichatbot.auth.dto.RegisterResponse;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -30,7 +31,7 @@ public class AuthController {
     }
 
     @PostMapping("/register")
-    public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
         if (userRepository.findByEmail(request.getEmail()).isPresent()) {
             throw new RuntimeException("Email already registered");
         }
@@ -43,13 +44,8 @@ public class AuthController {
 
         userRepository.save(user);
 
-        String token = jwtService.generateToken(user);
-
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(token)
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
+        return ResponseEntity.ok(RegisterResponse.builder()
+                .message("Email registered successfully")
                 .build());
     }
 

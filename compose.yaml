@@ -15,33 +15,21 @@ services:
       timeout: 5s
       retries: 5
 
-
-  ollama:
-    image: ollama/ollama:latest
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama_data:/root/.ollama
-    environment:
-      OLLAMA_HOST: 0.0.0.0
-
   backend:
     build: .
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
       SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
       JWT_SECRET: ${JWT_SECRET}
-      OLLAMA_BASE_URL: http://ollama:11434
-      OLLAMA_MODEL: ${OLLAMA_MODEL}
+      GROQ_BASE_URL: https://api.groq.com/openai/v1
+      GROQ_MODEL: openai/gpt-oss-20b
+      GROQ_API_KEY: ${GROQ_API_KEY}
     depends_on:
       postgres:
         condition: service_healthy
-      ollama:
-        condition: service_started
 
 volumes:
   postgres_data:
-  ollama_data:
