@@ -1,4 +1,4 @@
-package com.riya.aichatbot.ai;
+package com.riya.aichatbot.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;

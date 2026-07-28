@@ -1,4 +1,4 @@
-package com.riya.aichatbot.auth;
+package com.riya.aichatbot.auth.service;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

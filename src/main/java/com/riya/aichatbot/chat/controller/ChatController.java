@@ -1,10 +1,12 @@
-package com.riya.aichatbot.chat;
+package com.riya.aichatbot.chat.controller;
 
-import com.riya.aichatbot.auth.User;
-import com.riya.aichatbot.auth.UserRepository;
+import com.riya.aichatbot.auth.entity.User;
+import com.riya.aichatbot.auth.repository.UserRepository;
 import com.riya.aichatbot.chat.dto.ConversationResponse;
 import com.riya.aichatbot.chat.dto.MessageResponse;
 import com.riya.aichatbot.chat.dto.SendMessageRequest;
+import com.riya.aichatbot.chat.service.ChatService;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;

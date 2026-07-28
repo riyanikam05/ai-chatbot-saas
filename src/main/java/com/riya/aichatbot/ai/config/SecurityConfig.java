@@ -1,7 +1,8 @@
-package com.riya.aichatbot.config;
+package com.riya.aichatbot.ai.config;
 
-import com.riya.aichatbot.auth.JwtAuthFilter;
-import com.riya.aichatbot.auth.UserRepository;
+import com.riya.aichatbot.auth.repository.UserRepository;
+import com.riya.aichatbot.auth.service.JwtAuthFilter;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

@@ -1,8 +1,13 @@
-package com.riya.aichatbot.chat;
+package com.riya.aichatbot.chat.service;
 
-import com.riya.aichatbot.ai.GroqService;
+import com.riya.aichatbot.ai.service.GroqService;
 import com.riya.aichatbot.chat.dto.ConversationResponse;
 import com.riya.aichatbot.chat.dto.MessageResponse;
+import com.riya.aichatbot.chat.entity.Conversation;
+import com.riya.aichatbot.chat.entity.Message;
+import com.riya.aichatbot.chat.repository.ConversationRepository;
+import com.riya.aichatbot.chat.repository.MessageRepository;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 

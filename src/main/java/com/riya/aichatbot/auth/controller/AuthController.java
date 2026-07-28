@@ -1,9 +1,13 @@
-package com.riya.aichatbot.auth;
+package com.riya.aichatbot.auth.controller;
 
 import com.riya.aichatbot.auth.dto.AuthResponse;
 import com.riya.aichatbot.auth.dto.LoginRequest;
 import com.riya.aichatbot.auth.dto.RegisterRequest;
 import com.riya.aichatbot.auth.dto.RegisterResponse;
+import com.riya.aichatbot.auth.entity.User;
+import com.riya.aichatbot.auth.repository.UserRepository;
+import com.riya.aichatbot.auth.service.JwtService;
+
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;

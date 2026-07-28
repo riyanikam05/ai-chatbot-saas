@@ -1,4 +1,4 @@
-package com.riya.aichatbot.config;
+package com.riya.aichatbot.ai.config;
 
 import jakarta.validation.ConstraintViolation;
 import jakarta.validation.ConstraintViolationException;

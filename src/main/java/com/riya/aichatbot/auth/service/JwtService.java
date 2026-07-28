@@ -1,4 +1,4 @@
-package com.riya.aichatbot.auth;
+package com.riya.aichatbot.auth.service;
 
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.security.Keys;

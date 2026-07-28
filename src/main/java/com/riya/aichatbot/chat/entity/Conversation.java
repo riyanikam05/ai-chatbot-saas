@@ -1,4 +1,4 @@
-package com.riya.aichatbot.chat;
+package com.riya.aichatbot.chat.entity;
 
 import jakarta.persistence.*;
 import lombok.*;

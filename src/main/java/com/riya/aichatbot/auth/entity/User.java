@@ -1,4 +1,4 @@
-package com.riya.aichatbot.auth;
+package com.riya.aichatbot.auth.entity;
 
 import jakarta.persistence.*;
 import lombok.*;
