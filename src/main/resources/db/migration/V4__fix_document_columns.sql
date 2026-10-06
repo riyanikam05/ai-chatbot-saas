@@ -1,0 +1,3 @@
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_filename VARCHAR(255);
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS stored_filename   VARCHAR(255) UNIQUE;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS file_path         VARCHAR(500);

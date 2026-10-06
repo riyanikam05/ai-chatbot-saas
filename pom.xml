@@ -104,17 +104,11 @@
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-core</artifactId>
         </dependency>
+
         <dependency>
             <groupId>org.flywaydb</groupId>
             <artifactId>flyway-database-postgresql</artifactId>
             <version>10.10.0</version>
-        </dependency>
-
-        <!-- SpringDoc for API docs -->
-        <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>2.3.0</version>
         </dependency>
 
         <!-- H2 for tests -->
@@ -151,7 +145,20 @@
             <version>3.0.2</version>
         </dependency>
 
-    </dependencies>
+        <!-- Apache Tika for document parsing -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.core</groupId>
+            <artifactId>jackson-databind</artifactId>
+        </dependency>
+
+        <!-- SpringDoc for API docs -->
+        <dependency>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
+            <version>2.5.0</version>
+        </dependency>
+
+        </dependencies>
 
     <build>
         <plugins>

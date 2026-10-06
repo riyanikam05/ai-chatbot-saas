@@ -1,13 +1,16 @@
 package com.riya.aichatbot.chat.repository;
 
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
-
+import com.riya.aichatbot.auth.entity.User;
 import com.riya.aichatbot.chat.entity.Conversation;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
+import java.util.Optional;
 
-@Repository
 public interface ConversationRepository extends JpaRepository<Conversation, Long> {
-    List<Conversation> findByUserIdOrderByUpdatedAtDesc(Long userId);
+
+    List<Conversation> findByUserOrderByUpdatedAtDesc(User user);
+
+    Optional<Conversation> findByIdAndUser(Long id, User user);
+
 }

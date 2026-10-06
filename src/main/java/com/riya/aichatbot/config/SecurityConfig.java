@@ -1,4 +1,4 @@
-package com.riya.aichatbot.ai.config;
+package com.riya.aichatbot.config;
 
 import com.riya.aichatbot.auth.repository.UserRepository;
 import com.riya.aichatbot.auth.service.JwtAuthFilter;
@@ -35,17 +35,24 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
+
         http
                 .csrf(AbstractHttpConfigurer::disable)
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/register", "/api/auth/login").permitAll()
-                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**").permitAll()
-                        .requestMatchers("/actuator/health").permitAll()
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers(
+                                "/api/auth/register",
+                                "/api/auth/login",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/v3/api-docs/**",
+                                "/actuator/**")
+                        .permitAll()
+                        .anyRequest()
+                        .authenticated())
                 .authenticationProvider(authenticationProvider())
-                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(jwtAuthFilter,
+                        UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

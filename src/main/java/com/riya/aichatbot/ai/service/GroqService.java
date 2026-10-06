@@ -2,14 +2,12 @@ package com.riya.aichatbot.ai.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import jakarta.annotation.PostConstruct;
+import com.riya.aichatbot.common.constants.AppConstants;
+
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
@@ -26,40 +24,41 @@ public class GroqService {
     @Value("${groq.api-key}")
     private String apiKey;
 
-    private final RestTemplate restTemplate;
+    private final RestClient restClient;
     private final ObjectMapper objectMapper;
 
-    public GroqService(RestTemplate restTemplate, ObjectMapper objectMapper) {
-        this.restTemplate = restTemplate;
+    public GroqService(RestClient.Builder builder,
+            ObjectMapper objectMapper) {
+
+        this.restClient = builder.build();
         this.objectMapper = objectMapper;
     }
 
-
     public String chat(List<Map<String, String>> messageHistory) {
+        System.out.println("Groq model = " + model);
+
         String url = baseUrl + "/chat/completions";
 
         try {
-            String jsonBody = objectMapper.writeValueAsString(Map.of(
-                    "model", model,
-                    "messages", messageHistory,
-                    "temperature", 0.5,
-                    "max_completion_tokens", 150,
-                    "stream", false
-            ));
 
-            HttpHeaders headers = new HttpHeaders();
-            headers.setContentType(MediaType.APPLICATION_JSON);
-            headers.setBearerAuth(apiKey);
+            String jsonBody = objectMapper.writeValueAsString(
+                    Map.of(
+                            "model", model,
+                            "messages", messageHistory,
+                            "temperature", AppConstants.DEFAULT_TEMPERATURE,
+                            "max_completion_tokens", AppConstants.DEFAULT_MAX_TOKENS,
+                            "stream", false));
 
-            HttpEntity<String> request = new HttpEntity<>(jsonBody, headers);
+            String response = restClient.post()
+                    .uri(url)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .header("Authorization", "Bearer " + apiKey)
+                    .body(jsonBody)
+                    .retrieve()
+                    .body(String.class);
 
-            ResponseEntity<String> response = restTemplate.postForEntity(
-                    url,
-                    request,
-                    String.class
-            );
+            JsonNode root = objectMapper.readTree(response);
 
-            JsonNode root = objectMapper.readTree(response.getBody());
             JsonNode contentNode = root.path("choices")
                     .path(0)
                     .path("message")
@@ -72,11 +71,13 @@ public class GroqService {
             return contentNode.asText();
 
         } catch (Exception e) {
+
             throw new RuntimeException(
-                    "Groq request failed. model=" + model
-                            + ", response=" + e.getMessage(),
-                    e
-            );
+                    "Groq request failed. model="
+                            + model
+                            + ", response="
+                            + e.getMessage(),
+                    e);
         }
     }
 }

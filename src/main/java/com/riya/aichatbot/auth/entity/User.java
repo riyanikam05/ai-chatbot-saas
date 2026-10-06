@@ -3,11 +3,12 @@ package com.riya.aichatbot.auth.entity;
 import jakarta.persistence.*;
 import lombok.*;
 import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
 import java.time.LocalDateTime;
 import java.util.Collection;
-import java.util.Collections;
+import java.util.List;
 
 @Entity
 @Table(name = "users")
@@ -21,10 +22,10 @@ public class User implements UserDetails {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false)
+    @Column(nullable = false, length = 100)
     private String name;
 
-    @Column(unique = true, nullable = false)
+    @Column(unique = true, nullable = false, length = 150)
     private String email;
 
     @Column(nullable = false)
@@ -38,9 +39,10 @@ public class User implements UserDetails {
         createdAt = LocalDateTime.now();
     }
 
+    // UserDetails implementation
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
-        return Collections.emptyList();
+        return List.of(new SimpleGrantedAuthority("ROLE_USER"));
     }
 
     @Override

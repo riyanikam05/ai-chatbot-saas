@@ -18,13 +18,27 @@ public class TextChunkingService {
             return chunks;
         }
 
+        text = text.replace("\r", " ")
+                .replace("\n", " ")
+                .replaceAll("\\s+", " ")
+                .trim();
+
         int start = 0;
 
         while (start < text.length()) {
 
             int end = Math.min(start + CHUNK_SIZE, text.length());
 
-            chunks.add(text.substring(start, end));
+            if (end < text.length()) {
+
+                int lastSpace = text.lastIndexOf(" ", end);
+
+                if (lastSpace > start) {
+                    end = lastSpace;
+                }
+            }
+
+            chunks.add(text.substring(start, end).trim());
 
             start = end;
         }

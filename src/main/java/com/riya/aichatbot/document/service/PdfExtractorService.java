@@ -9,12 +9,14 @@ import java.io.File;
 import java.io.IOException;
 
 @Service
-public class PdfExtractionService {
+public class PdfExtractorService {
 
-    public String extractText(String filePath) throws IOException {
+    public String extractText(File file) throws IOException {
 
-        try (PDDocument document = Loader.loadPDF(new File(filePath))) {
+        try (PDDocument document = Loader.loadPDF(file)) {
+
             PDFTextStripper stripper = new PDFTextStripper();
+
             return stripper.getText(document);
         }
     }

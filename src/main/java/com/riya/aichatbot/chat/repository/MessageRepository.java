@@ -7,7 +7,6 @@ import com.riya.aichatbot.chat.entity.Message;
 
 import java.util.List;
 
-@Repository
 public interface MessageRepository extends JpaRepository<Message, Long> {
     List<Message> findByConversationIdOrderByCreatedAtAsc(Long conversationId);
 }

@@ -7,7 +7,15 @@ import com.riya.aichatbot.auth.dto.RegisterResponse;
 import com.riya.aichatbot.auth.entity.User;
 import com.riya.aichatbot.auth.repository.UserRepository;
 import com.riya.aichatbot.auth.service.JwtService;
+import com.riya.aichatbot.exception.EmailAlreadyExistsException;
 
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -16,75 +24,109 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+import com.riya.aichatbot.exception.EmailAlreadyExistsException;
 
 @RestController
 @RequestMapping("/api/auth")
+@Tag(name = "Authentication", description = "User registration, login and profile APIs")
 public class AuthController {
 
-    private final UserRepository userRepository;
-    private final AuthenticationManager authenticationManager;
-    private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
+        private final UserRepository userRepository;
+        private final AuthenticationManager authenticationManager;
+        private final JwtService jwtService;
+        private final PasswordEncoder passwordEncoder;
 
-    public AuthController(UserRepository userRepository, AuthenticationManager authenticationManager, 
-                         JwtService jwtService, PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.authenticationManager = authenticationManager;
-        this.jwtService = jwtService;
-        this.passwordEncoder = passwordEncoder;
-    }
+        public AuthController(
+                        UserRepository userRepository,
+                        AuthenticationManager authenticationManager,
+                        JwtService jwtService,
+                        PasswordEncoder passwordEncoder) {
 
-    @PostMapping("/register")
-    public ResponseEntity<RegisterResponse> register(@Valid @RequestBody RegisterRequest request) {
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already registered");
+                this.userRepository = userRepository;
+                this.authenticationManager = authenticationManager;
+                this.jwtService = jwtService;
+                this.passwordEncoder = passwordEncoder;
         }
 
-        User user = User.builder()
-                .name(request.getName())
-                .email(request.getEmail())
-                .password(passwordEncoder.encode(request.getPassword()))
-                .build();
+        @Operation(summary = "Register a new user", description = "Creates a new account with name, email and password.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "User registered successfully"),
+                        @ApiResponse(responseCode = "400", description = "Validation failed", content = @Content),
+                        @ApiResponse(responseCode = "409", description = "Email already exists", content = @Content)
+        })
+        @PostMapping("/register")
+        public ResponseEntity<RegisterResponse> register(
+                        @Valid @RequestBody RegisterRequest request) {
 
-        userRepository.save(user);
+                if (userRepository.existsByEmail(request.getEmail())) {
+                        throw new EmailAlreadyExistsException("Email is already registered.");
+                }
 
-        return ResponseEntity.ok(RegisterResponse.builder()
-                .message("Email registered successfully")
-                .build());
-    }
+                User user = User.builder()
+                                .name(request.getName())
+                                .email(request.getEmail())
+                                .password(passwordEncoder.encode(request.getPassword()))
+                                .build();
 
-    @PostMapping("/login")
-    public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword())
-        );
+                userRepository.save(user);
 
-        UserDetails userDetails = (UserDetails) authentication.getPrincipal();
-        User user = userRepository.findByEmail(userDetails.getUsername())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                return ResponseEntity.ok(
+                                RegisterResponse.builder()
+                                                .message("Email registered successfully")
+                                                .build());
+        }
 
-        String token = jwtService.generateToken(userDetails);
+        @Operation(summary = "Login", description = "Authenticates the user and returns a JWT token.")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "Login successful", content = @Content(schema = @Schema(implementation = AuthResponse.class))),
+                        @ApiResponse(responseCode = "401", description = "Invalid credentials", content = @Content)
+        })
+        @PostMapping("/login")
+        public ResponseEntity<AuthResponse> login(
+                        @Valid @RequestBody LoginRequest request) {
 
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(token)
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .build());
-    }
+                Authentication authentication = authenticationManager.authenticate(
+                                new UsernamePasswordAuthenticationToken(
+                                                request.getEmail(),
+                                                request.getPassword()));
 
-    @GetMapping("/me")
-    public ResponseEntity<AuthResponse> getCurrentUser(Authentication authentication) {
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                UserDetails userDetails = (UserDetails) authentication.getPrincipal();
 
-        String token = jwtService.generateToken(user);
+                User user = userRepository.findByEmail(userDetails.getUsername())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        return ResponseEntity.ok(AuthResponse.builder()
-                .token(token)
-                .userId(user.getId())
-                .name(user.getName())
-                .email(user.getEmail())
-                .build());
-    }
+                String token = jwtService.generateToken(userDetails);
+
+                return ResponseEntity.ok(
+                                AuthResponse.builder()
+                                                .token(token)
+                                                .userId(user.getId())
+                                                .name(user.getName())
+                                                .email(user.getEmail())
+                                                .build());
+        }
+
+        @Operation(summary = "Get current user", description = "Returns the authenticated user's profile.")
+        @SecurityRequirement(name = "bearerAuth")
+        @ApiResponses({
+                        @ApiResponse(responseCode = "200", description = "User profile returned successfully"),
+                        @ApiResponse(responseCode = "401", description = "Unauthorized", content = @Content)
+        })
+        @GetMapping("/me")
+        public ResponseEntity<AuthResponse> getCurrentUser(
+                        Authentication authentication) {
+
+                User user = userRepository.findByEmail(authentication.getName())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
+
+                String token = jwtService.generateToken(user);
+
+                return ResponseEntity.ok(
+                                AuthResponse.builder()
+                                                .token(token)
+                                                .userId(user.getId())
+                                                .name(user.getName())
+                                                .email(user.getEmail())
+                                                .build());
+        }
 }

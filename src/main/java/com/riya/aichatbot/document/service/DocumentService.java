@@ -1,142 +1,105 @@
 package com.riya.aichatbot.document.service;
 
-import com.riya.aichatbot.document.dto.DocumentResponse;
+import com.riya.aichatbot.ai.service.ChromaService;
+import com.riya.aichatbot.ai.service.OllamaService;
+import com.riya.aichatbot.auth.entity.User;
 import com.riya.aichatbot.document.entity.Document;
 import com.riya.aichatbot.document.repository.DocumentRepository;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.nio.file.StandardCopyOption;
+import java.nio.file.*;
 import java.util.List;
 import java.util.UUID;
-import java.util.stream.Collectors;
 
 @Service
 public class DocumentService {
 
-    private static final Logger log = LoggerFactory.getLogger(DocumentService.class);
+    private static final Logger logger = LoggerFactory.getLogger(DocumentService.class);
 
     private final DocumentRepository documentRepository;
-    private final PdfExtractionService pdfService;
+    private final PdfExtractorService pdfExtractorService;
     private final TextChunkingService textChunkingService;
+    private final OllamaService ollamaService;
+    private final ChromaService chromaService;
 
-    @Value("${app.upload-dir}")
+    @Value("${file.upload-dir}")
     private String uploadDir;
 
-    public DocumentService(DocumentRepository documentRepository,
-                           PdfExtractionService pdfService,
-                           TextChunkingService textChunkingService) {
+    public DocumentService(
+            DocumentRepository documentRepository,
+            PdfExtractorService pdfExtractorService,
+            TextChunkingService textChunkingService,
+            OllamaService ollamaService,
+            ChromaService chromaService) {
+
         this.documentRepository = documentRepository;
-        this.pdfService = pdfService;
+        this.pdfExtractorService = pdfExtractorService;
         this.textChunkingService = textChunkingService;
+        this.ollamaService = ollamaService;
+        this.chromaService = chromaService;
     }
 
     @Transactional
-    public DocumentResponse uploadDocument(Long userId, MultipartFile file) throws IOException {
+    public Document uploadDocument(MultipartFile file, User user) throws IOException {
 
-        // Validate file
-        if (file.isEmpty()) {
-            throw new RuntimeException("Please select a PDF file.");
-        }
-
-        if (!"application/pdf".equals(file.getContentType())) {
-            throw new RuntimeException("Only PDF files are allowed.");
-        }
-
-        // Create uploads directory if it doesn't exist
         Path uploadPath = Paths.get(uploadDir);
         Files.createDirectories(uploadPath);
 
-        // Generate unique filename
-        String storedFilename = UUID.randomUUID() + ".pdf";
+        String storedFilename = UUID.randomUUID() + "_" + file.getOriginalFilename();
 
         Path destination = uploadPath.resolve(storedFilename);
 
-        // Save PDF locally
         Files.copy(
                 file.getInputStream(),
                 destination,
-                StandardCopyOption.REPLACE_EXISTING
-        );
+                StandardCopyOption.REPLACE_EXISTING);
 
-        // Extract text from PDF
-        String extractedText = pdfService.extractText(destination.toString());
-
-        log.info("Successfully extracted {} characters from '{}'",
-                extractedText.length(),
-                file.getOriginalFilename());
-
-        // Split text into chunks
-        List<String> chunks = textChunkingService.chunkText(extractedText);
-
-        log.info("Created {} chunks from '{}'",
-                chunks.size(),
-                file.getOriginalFilename());
-
-        /*
-         * NEXT STEP:
-         *
-         * for (String chunk : chunks) {
-         *      embeddingService.generateEmbedding(chunk);
-         * }
-         *
-         * Then store the embeddings in ChromaDB.
-         */
-
-        // Save document metadata
-        Document document = Document.builder()
-                .userId(userId)
-                .originalFilename(file.getOriginalFilename())
-                .storedFilename(storedFilename)
-                .filePath(destination.toString())
-                .build();
+        Document document = new Document();
+        document.setOriginalFilename(file.getOriginalFilename());
+        document.setStoredFilename(storedFilename);
+        document.setFilePath(destination.toString());
+        document.setFileSize(file.getSize());
+        document.setUser(user);
 
         document = documentRepository.save(document);
 
-        return DocumentResponse.builder()
-                .id(document.getId())
-                .originalFilename(document.getOriginalFilename())
-                .uploadedAt(document.getUploadedAt())
-                .build();
-    }
+        String text = pdfExtractorService.extractText(destination.toFile());
 
-    public List<DocumentResponse> getDocuments(Long userId) {
+        List<String> chunks = textChunkingService.chunkText(text);
 
-        return documentRepository.findByUserIdOrderByUploadedAtDesc(userId)
-                .stream()
-                .map(document -> DocumentResponse.builder()
-                        .id(document.getId())
-                        .originalFilename(document.getOriginalFilename())
-                        .uploadedAt(document.getUploadedAt())
-                        .build())
-                .collect(Collectors.toList());
-    }
+        String collectionId = chromaService.getCollectionId();
 
-    @Transactional
-    public void deleteDocument(Long userId, Long documentId) {
+        logger.info("Total chunks = {}", chunks.size());
 
-        Document document = documentRepository.findById(documentId)
-                .orElseThrow(() -> new RuntimeException("Document not found."));
+        for (int i = 0; i < chunks.size(); i++) {
+            logger.info("------------- Chunk {} -------------", i);
+            logger.info(chunks.get(i));
+        }
+        for (int i = 0; i < chunks.size(); i++) {
 
-        if (!document.getUserId().equals(userId)) {
-            throw new RuntimeException("Access denied.");
+            String chunk = chunks.get(i);
+
+            List<Double> embedding = ollamaService.generateEmbedding(chunk);
+
+            chromaService.storeEmbedding(
+                    collectionId,
+                    document.getId(),
+                    user.getId(),
+                    i,
+                    chunk,
+                    embedding);
         }
 
-        try {
-            Files.deleteIfExists(Paths.get(document.getFilePath()));
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to delete PDF file.");
-        }
+        return document;
+    }
 
-        documentRepository.delete(document);
+    public List<Document> getUserDocuments(User user) {
+        return documentRepository.findByUserOrderByUploadedAtDesc(user);
     }
 }

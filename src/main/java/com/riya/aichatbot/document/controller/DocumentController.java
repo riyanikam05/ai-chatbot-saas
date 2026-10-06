@@ -3,8 +3,13 @@ package com.riya.aichatbot.document.controller;
 import com.riya.aichatbot.auth.entity.User;
 import com.riya.aichatbot.auth.repository.UserRepository;
 import com.riya.aichatbot.document.dto.DocumentResponse;
+import com.riya.aichatbot.document.dto.UploadResponse;
+import com.riya.aichatbot.document.entity.Document;
 import com.riya.aichatbot.document.service.DocumentService;
-
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
@@ -14,62 +19,71 @@ import java.io.IOException;
 import java.util.List;
 
 @RestController
-@RequestMapping("/api/documents")
+@RequestMapping("/api/v1/documents")
+@Tag(name = "Documents", description = "Upload and manage source documents for RAG")
+@SecurityRequirement(name = "bearerAuth")
 public class DocumentController {
 
-    private final DocumentService documentService;
-    private final UserRepository userRepository;
+        private final DocumentService documentService;
+        private final UserRepository userRepository;
 
-    public DocumentController(DocumentService documentService,
-                              UserRepository userRepository) {
-        this.documentService = documentService;
-        this.userRepository = userRepository;
-    }
+        public DocumentController(
+                        DocumentService documentService,
+                        UserRepository userRepository) {
 
-    private Long getCurrentUserId(Authentication authentication) {
+                this.documentService = documentService;
+                this.userRepository = userRepository;
+        }
 
-        User user = userRepository.findByEmail(authentication.getName())
-                .orElseThrow(() -> new RuntimeException("User not found"));
+        private User getCurrentUser(Authentication authentication) {
 
-        return user.getId();
-    }
+                return userRepository.findByEmail(authentication.getName())
+                                .orElseThrow(() -> new RuntimeException("User not found."));
+        }
 
-    @PostMapping("/upload")
-    public ResponseEntity<DocumentResponse> uploadDocument(
-            @RequestParam("file") MultipartFile file,
-            Authentication authentication
-    ) throws IOException {
+        @Operation(summary = "Upload a PDF document for RAG ingestion")
+        // Declaring consumes = MULTIPART_FORM_DATA_VALUE here is what tells
+        // springdoc to render this as a file-picker widget in Swagger UI
+        // instead of a raw JSON body box.
+        @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+        public ResponseEntity<UploadResponse> uploadDocument(
+                        @RequestParam("file") MultipartFile file,
+                        Authentication authentication) throws IOException {
 
-        Long userId = getCurrentUserId(authentication);
+                User user = getCurrentUser(authentication);
 
-        DocumentResponse response =
-                documentService.uploadDocument(userId, file);
+                Document document = documentService.uploadDocument(file, user);
 
-        return ResponseEntity.ok(response);
-    }
+                UploadResponse response = new UploadResponse(
+                                document.getId(),
+                                document.getOriginalFilename(),
+                                "Document uploaded successfully.");
 
-    @GetMapping
-    public ResponseEntity<List<DocumentResponse>> getDocuments(
-            Authentication authentication
-    ) {
+                return ResponseEntity.ok(response);
+        }
 
-        Long userId = getCurrentUserId(authentication);
+        @Operation(summary = "List the authenticated user's uploaded documents")
+        @GetMapping
+        public ResponseEntity<List<DocumentResponse>> getDocuments(
+                        Authentication authentication) {
 
-        return ResponseEntity.ok(
-                documentService.getDocuments(userId)
-        );
-    }
+                User user = getCurrentUser(authentication);
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteDocument(
-            @PathVariable Long id,
-            Authentication authentication
-    ) {
+                List<DocumentResponse> responses = documentService
+                                .getUserDocuments(user)
+                                .stream()
+                                .map(this::toResponse)
+                                .toList();
 
-        Long userId = getCurrentUserId(authentication);
+                return ResponseEntity.ok(responses);
+        }
 
-        documentService.deleteDocument(userId, id);
-
-        return ResponseEntity.noContent().build();
-    }
+        private DocumentResponse toResponse(Document document) {
+                return DocumentResponse.builder()
+                                .id(document.getId())
+                                .originalFilename(document.getOriginalFilename())
+                                .fileSize(document.getFileSize())
+                                .uploadedAt(document.getUploadedAt())
+                                .build();
+        }
 }

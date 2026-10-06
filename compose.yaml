@@ -1,35 +1,51 @@
+version: "3.9"
+
 services:
+
   postgres:
     image: postgres:16-alpine
+    container_name: chatbot-postgres
     environment:
-      POSTGRES_DB: ${POSTGRES_DB}
-      POSTGRES_USER: ${POSTGRES_USER}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB:-mydatabase}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     ports:
-      - "5432:5432"
+      - "5434:5432"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-mydatabase}"]
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
 
-  backend:
-    build: .
+  redis:
+    image: redis:7-alpine
+    container_name: chatbot-redis
     ports:
-      - "8081:8081"
-    environment:
-      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB}
-      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD}
-      JWT_SECRET: ${JWT_SECRET}
-      GROQ_BASE_URL: https://api.groq.com/openai/v1
-      GROQ_MODEL: openai/gpt-oss-20b
-      GROQ_API_KEY: ${GROQ_API_KEY}
-    depends_on:
-      postgres:
-        condition: service_healthy
+      - "6379:6379"
+    restart: unless-stopped
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: chatbot-chromadb
+    ports:
+      - "8000:8000"
+    volumes:
+      - chroma-data:/chroma/chroma
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: chatbot-ollama
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
 
 volumes:
-  postgres_data:
+  postgres-data:
+  chroma-data:
+  ollama-data:

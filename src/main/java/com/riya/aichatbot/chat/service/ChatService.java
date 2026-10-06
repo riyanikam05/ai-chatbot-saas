@@ -1,154 +1,141 @@
 package com.riya.aichatbot.chat.service;
 
+import com.riya.aichatbot.ai.service.ChromaService;
 import com.riya.aichatbot.ai.service.GroqService;
-import com.riya.aichatbot.chat.dto.ConversationResponse;
-import com.riya.aichatbot.chat.dto.MessageResponse;
+import com.riya.aichatbot.ai.service.OllamaService;
+import com.riya.aichatbot.auth.entity.User;
+import com.riya.aichatbot.auth.repository.UserRepository;
+import com.riya.aichatbot.chat.dto.ChatResponse;
 import com.riya.aichatbot.chat.entity.Conversation;
 import com.riya.aichatbot.chat.entity.Message;
-import com.riya.aichatbot.chat.repository.ConversationRepository;
 import com.riya.aichatbot.chat.repository.MessageRepository;
-
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 @Service
 public class ChatService {
 
-    private final ConversationRepository conversationRepository;
-    private final MessageRepository messageRepository;
-    private final GroqService groqService;
+        private final OllamaService ollamaService;
+        private final ChromaService chromaService;
+        private final GroqService groqService;
+        private final UserRepository userRepository;
+        private final ConversationService conversationService;
+        private final MessageRepository messageRepository;
 
-    public ChatService(
-            ConversationRepository conversationRepository,
-            MessageRepository messageRepository,
-            GroqService groqService
-    ) {
-        this.conversationRepository = conversationRepository;
-        this.messageRepository = messageRepository;
-        this.groqService = groqService;
-    }
+        public ChatService(
+                        OllamaService ollamaService,
+                        ChromaService chromaService,
+                        GroqService groqService,
+                        UserRepository userRepository,
+                        ConversationService conversationService,
+                        MessageRepository messageRepository) {
 
-    @Transactional
-    public MessageResponse sendMessage(Long userId, Long conversationId, String userMessage) {
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation not found"));
-
-        if (!conversation.getUserId().equals(userId)) {
-            throw new RuntimeException("Access denied: conversation does not belong to user");
+                this.ollamaService = ollamaService;
+                this.chromaService = chromaService;
+                this.groqService = groqService;
+                this.userRepository = userRepository;
+                this.conversationService = conversationService;
+                this.messageRepository = messageRepository;
         }
 
-        Message userMsg = Message.builder()
-                .conversationId(conversationId)
-                .role("user")
-                .content(userMessage)
-                .build();
+        @Transactional
+        public ChatResponse askQuestion(
+                        String question,
+                        Long conversationId,
+                        Authentication authentication) {
 
-        messageRepository.save(userMsg);
+                // Get logged-in user
+                User user = userRepository.findByEmail(authentication.getName())
+                                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<Message> allHistory =
-                messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId);
+                // Resolve the conversation: reuse an existing one (verifying
+                // ownership) or create a new one for this question.
+                Conversation conversation = (conversationId != null)
+                                ? conversationService.getConversation(conversationId, user)
+                                : conversationService.createConversation(user, question);
 
-        List<Message> recentHistory = allHistory.size() > 20
-                ? allHistory.subList(allHistory.size() - 20, allHistory.size())
-                : allHistory;
+                // Save the user's question as a Message right away, so it's
+                // recorded even if generation fails below.
+                messageRepository.save(Message.builder()
+                                .conversationId(conversation.getId())
+                                .role("user")
+                                .content(question)
+                                .build());
 
-        List<Map<String, String>> messageHistory = recentHistory.stream()
-                .map(message -> Map.of(
-                        "role", message.getRole(),
-                        "content", message.getContent()
-                ))
-                .collect(Collectors.toList());
+                // Generate embedding for the user's question
+                List<Double> embedding = ollamaService.generateEmbedding(question);
 
-        String aiResponse = groqService.chat(messageHistory);
+                // Get Chroma collection
+                String collectionId = chromaService.getCollectionId();
 
-        Message assistantMsg = Message.builder()
-                .conversationId(conversationId)
-                .role("assistant")
-                .content(aiResponse)
-                .build();
+                // Search only this user's document chunks
+                List<String> chunks = chromaService.searchRelevantChunks(
+                                collectionId,
+                                user.getId(),
+                                embedding,
+                                3);
 
-        messageRepository.save(assistantMsg);
+                // No relevant context found
+                if (chunks.isEmpty()) {
 
-        conversation.setUpdatedAt(LocalDateTime.now());
+                        String noContextAnswer = "I couldn't find any relevant information in your uploaded documents.";
 
-        if (allHistory.size() == 1) {
-            String title = userMessage.length() > 50
-                    ? userMessage.substring(0, 50) + "..."
-                    : userMessage;
+                        messageRepository.save(Message.builder()
+                                        .conversationId(conversation.getId())
+                                        .role("assistant")
+                                        .content(noContextAnswer)
+                                        .build());
 
-            conversation.setTitle(title);
+                        return new ChatResponse(
+                                        conversation.getId(),
+                                        question,
+                                        noContextAnswer,
+                                        List.of());
+                }
+
+                // Build context
+                String context = String.join("\n\n", chunks);
+
+                String prompt = """
+                                You are a helpful AI assistant.
+
+                                Answer ONLY from the provided context.
+
+                                If the answer is not contained in the context,
+                                reply exactly:
+
+                                I couldn't find that information in the uploaded documents.
+
+                                -------------------------
+                                Context:
+                                %s
+                                -------------------------
+
+                                Question:
+                                %s
+                                """.formatted(context, question);
+
+                String answer = groqService.chat(
+                                List.of(
+                                                Map.of(
+                                                                "role", "user",
+                                                                "content", prompt)));
+
+                // Save the assistant's answer as a Message
+                messageRepository.save(Message.builder()
+                                .conversationId(conversation.getId())
+                                .role("assistant")
+                                .content(answer)
+                                .build());
+
+                return new ChatResponse(
+                                conversation.getId(),
+                                question,
+                                answer,
+                                chunks);
         }
-
-        conversationRepository.save(conversation);
-
-        return MessageResponse.builder()
-                .id(assistantMsg.getId())
-                .role(assistantMsg.getRole())
-                .content(assistantMsg.getContent())
-                .createdAt(assistantMsg.getCreatedAt())
-                .build();
-    }
-
-    @Transactional
-    public ConversationResponse createConversation(Long userId) {
-        Conversation conversation = Conversation.builder()
-                .userId(userId)
-                .title("New Chat")
-                .build();
-
-        conversation = conversationRepository.save(conversation);
-
-        return ConversationResponse.builder()
-                .id(conversation.getId())
-                .title(conversation.getTitle())
-                .createdAt(conversation.getCreatedAt())
-                .updatedAt(conversation.getUpdatedAt())
-                .build();
-    }
-
-    public List<ConversationResponse> getConversations(Long userId) {
-        return conversationRepository.findByUserIdOrderByUpdatedAtDesc(userId).stream()
-                .map(conversation -> ConversationResponse.builder()
-                        .id(conversation.getId())
-                        .title(conversation.getTitle())
-                        .createdAt(conversation.getCreatedAt())
-                        .updatedAt(conversation.getUpdatedAt())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    public List<MessageResponse> getMessages(Long userId, Long conversationId) {
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation not found"));
-
-        if (!conversation.getUserId().equals(userId)) {
-            throw new RuntimeException("Access denied: conversation does not belong to user");
-        }
-
-        return messageRepository.findByConversationIdOrderByCreatedAtAsc(conversationId).stream()
-                .map(message -> MessageResponse.builder()
-                        .id(message.getId())
-                        .role(message.getRole())
-                        .content(message.getContent())
-                        .createdAt(message.getCreatedAt())
-                        .build())
-                .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void deleteConversation(Long userId, Long conversationId) {
-        Conversation conversation = conversationRepository.findById(conversationId)
-                .orElseThrow(() -> new RuntimeException("Conversation not found"));
-
-        if (!conversation.getUserId().equals(userId)) {
-            throw new RuntimeException("Access denied: conversation does not belong to user");
-        }
-
-        conversationRepository.delete(conversation);
-    }
 }

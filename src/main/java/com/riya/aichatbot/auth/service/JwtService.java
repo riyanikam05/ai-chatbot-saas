@@ -1,13 +1,17 @@
 package com.riya.aichatbot.auth.service;
 
-import io.jsonwebtoken.*;
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
-import javax.crypto.SecretKey;
+import java.security.Key;
+import java.util.Base64;
 import java.util.Date;
+import java.util.function.Function;
 
 @Service
 public class JwtService {
@@ -16,10 +20,12 @@ public class JwtService {
     private String secret;
 
     @Value("${jwt.expiry}")
-    private Long expiry;
+    private long expiry;
 
-    private SecretKey getSigningKey() {
-        return Keys.hmacShaKeyFor(secret.getBytes());
+    // jjwt 0.11.5 uses Jwts.parserBuilder() not Jwts.parser()
+    private Key getSigningKey() {
+        byte[] keyBytes = Base64.getDecoder().decode(secret);
+        return Keys.hmacShaKeyFor(keyBytes);
     }
 
     public String generateToken(UserDetails userDetails) {
@@ -32,26 +38,24 @@ public class JwtService {
     }
 
     public String extractEmail(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody()
-                .getSubject();
+        return extractClaim(token, Claims::getSubject);
     }
 
     public boolean isTokenValid(String token, UserDetails userDetails) {
-        final String email = extractEmail(token);
-        return (email.equals(userDetails.getUsername()) && !isTokenExpired(token));
+        String email = extractEmail(token);
+        return email.equals(userDetails.getUsername()) && !isTokenExpired(token);
     }
 
-    public boolean isTokenExpired(String token) {
-        return Jwts.parserBuilder()
+    private boolean isTokenExpired(String token) {
+        return extractClaim(token, Claims::getExpiration).before(new Date());
+    }
+
+    private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
+        Claims claims = Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
                 .build()
                 .parseClaimsJws(token)
-                .getBody()
-                .getExpiration()
-                .before(new Date());
+                .getBody();
+        return claimsResolver.apply(claims);
     }
 }

@@ -1,0 +1,6 @@
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS original_filename  VARCHAR(255);
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS stored_filename    VARCHAR(255);
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS mime_type         VARCHAR(100);
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS status            VARCHAR(50) DEFAULT 'PENDING';
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS error_message     TEXT;
+ALTER TABLE documents ADD COLUMN IF NOT EXISTS chunk_count       INTEGER DEFAULT 0;

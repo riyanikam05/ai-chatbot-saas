@@ -1,42 +1,70 @@
 package com.riya.aichatbot.chat.entity;
 
+import com.riya.aichatbot.auth.entity.User;
 import jakarta.persistence.*;
-import lombok.*;
 
 import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "conversations")
-@Data
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
 public class Conversation {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "user_id", nullable = false)
-    private Long userId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "user_id", nullable = false)
+    private User user;
 
     @Column(length = 200)
     private String title;
 
-    @Column(name = "created_at")
+    @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at")
+    @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    public Conversation() {
+    }
+
     @PrePersist
-    protected void onCreate() {
+    public void onCreate() {
         createdAt = LocalDateTime.now();
         updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
-    protected void onUpdate() {
+    public void onUpdate() {
         updatedAt = LocalDateTime.now();
+    }
+
+    public Long getId() {
+        return id;
+    }
+
+    public User getUser() {
+        return user;
+    }
+
+    public void setUser(User user) {
+        this.user = user;
+    }
+
+    public String getTitle() {
+        return title;
+    }
+
+    public void setTitle(String title) {
+        this.title = title;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
     }
 }
