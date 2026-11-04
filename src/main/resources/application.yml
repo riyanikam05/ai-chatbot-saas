@@ -28,6 +28,8 @@ spring:
     locations: classpath:db/migration
     out-of-order: false
     validate-on-migrate: true
+    baseline-on-migrate: true
+    baseline-version: 0
 
   security:
     oauth2:
