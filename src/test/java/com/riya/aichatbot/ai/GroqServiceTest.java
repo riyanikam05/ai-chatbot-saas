@@ -1,77 +1,78 @@
+
 package com.riya.aichatbot.ai;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.riya.aichatbot.ai.service.GroqService;
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpEntity;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.client.RestTemplate;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
 
 import java.util.List;
 import java.util.Map;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
-@ExtendWith(MockitoExtension.class)
-class OllamaServiceTest {
+class GroqServiceTest {
 
-    @Mock
-    private RestTemplate restTemplate;
-
-    @Mock
-    private ObjectMapper objectMapper;
-
-    @Mock
-    private JsonNode mockRoot;
-
-    @Mock
-    private JsonNode mockMessageNode;
-
-    @Mock
-    private JsonNode mockContentNode;
-
-    @InjectMocks
     private GroqService groqService;
+    private MockRestServiceServer mockServer;
+
+    @BeforeEach
+    void setUp() {
+        RestClient.Builder builder = RestClient.builder();
+
+        mockServer = MockRestServiceServer.bindTo(builder).build();
+
+        groqService = new GroqService(builder, new ObjectMapper());
+
+        ReflectionTestUtils.setField(
+                groqService, "baseUrl", "https://api.groq.test/openai/v1");
+
+        ReflectionTestUtils.setField(
+                groqService, "model", "test-model");
+
+        ReflectionTestUtils.setField(
+                groqService, "apiKey", "test-api-key");
+    }
 
     @Test
-    void testChatMethodExists() throws Exception {
-        // Set the required fields using reflection
-        java.lang.reflect.Field baseUrlField = GroqService.class.getDeclaredField("baseUrl");
-        baseUrlField.setAccessible(true);
-        baseUrlField.set(groqService, "http://localhost:11434");
-
-        java.lang.reflect.Field modelField = GroqService.class.getDeclaredField("model");
-        modelField.setAccessible(true);
-        modelField.set(groqService, "qwen2.5:1.5b");
+    void testChatReturnsAssistantResponse() {
 
         List<Map<String, String>> history = List.of(
-                Map.of("role", "user", "content", "Hello")
-        );
+                Map.of("role", "user", "content", "Hello"));
 
-        // Mock the RestTemplate response
-        String mockResponseJson = "{\"message\":{\"content\":\"Hi there!\"}}";
-        ResponseEntity<String> mockResponse = ResponseEntity.ok(mockResponseJson);
-        
-        when(restTemplate.postForEntity(any(String.class), any(HttpEntity.class), eq(String.class)))
-                .thenReturn(mockResponse);
+        String responseJson = """
+                {
+                    "choices": [
+                        {
+                            "message": {
+                                "content": "Hi there!"
+                            }
+                        }
+                    ]
+                }
+                """;
 
-        // Mock ObjectMapper
-        when(objectMapper.readTree(any(String.class))).thenReturn(mockRoot);
-        when(mockRoot.path("message")).thenReturn(mockMessageNode);
-        when(mockMessageNode.path("content")).thenReturn(mockContentNode);
-        when(mockContentNode.isMissingNode()).thenReturn(false);
-        when(mockContentNode.asText()).thenReturn("Hi there!");
+        mockServer.expect(
+                requestTo("https://api.groq.test/openai/v1/chat/completions"))
+                .andExpect(method(HttpMethod.POST))
+                .andExpect(header(
+                        "Authorization", "Bearer test-api-key"))
+                .andRespond(withSuccess(
+                        responseJson, MediaType.APPLICATION_JSON));
 
         String result = groqService.chat(history);
+
         assertEquals("Hi there!", result);
+
+        mockServer.verify();
     }
 }

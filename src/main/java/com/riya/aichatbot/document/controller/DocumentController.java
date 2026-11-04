@@ -1,3 +1,4 @@
+
 package com.riya.aichatbot.document.controller;
 
 import com.riya.aichatbot.auth.entity.User;
@@ -30,28 +31,22 @@ public class DocumentController {
         public DocumentController(
                         DocumentService documentService,
                         UserRepository userRepository) {
-
                 this.documentService = documentService;
                 this.userRepository = userRepository;
         }
 
         private User getCurrentUser(Authentication authentication) {
-
                 return userRepository.findByEmail(authentication.getName())
                                 .orElseThrow(() -> new RuntimeException("User not found."));
         }
 
         @Operation(summary = "Upload a PDF document for RAG ingestion")
-        // Declaring consumes = MULTIPART_FORM_DATA_VALUE here is what tells
-        // springdoc to render this as a file-picker widget in Swagger UI
-        // instead of a raw JSON body box.
         @PostMapping(value = "/upload", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
         public ResponseEntity<UploadResponse> uploadDocument(
                         @RequestParam("file") MultipartFile file,
                         Authentication authentication) throws IOException {
 
                 User user = getCurrentUser(authentication);
-
                 Document document = documentService.uploadDocument(file, user);
 
                 UploadResponse response = new UploadResponse(
@@ -76,6 +71,18 @@ public class DocumentController {
                                 .toList();
 
                 return ResponseEntity.ok(responses);
+        }
+
+        @Operation(summary = "Delete an authenticated user's document")
+        @DeleteMapping("/{id}")
+        public ResponseEntity<Void> deleteDocument(
+                        @PathVariable Long id,
+                        Authentication authentication) {
+
+                User user = getCurrentUser(authentication);
+                documentService.deleteDocument(id, user);
+
+                return ResponseEntity.noContent().build();
         }
 
         private DocumentResponse toResponse(Document document) {

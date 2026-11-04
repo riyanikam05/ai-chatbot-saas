@@ -110,17 +110,6 @@ public class GlobalExceptionHandler {
                                 request);
         }
 
-        @ExceptionHandler(ChromaException.class)
-        public ResponseEntity<ApiError> handleChromaException(
-                        ChromaException ex,
-                        HttpServletRequest request) {
-
-                return buildError(
-                                HttpStatus.BAD_GATEWAY,
-                                ex.getMessage(),
-                                request);
-        }
-
         @ExceptionHandler(GroqException.class)
         public ResponseEntity<ApiError> handleGroqException(
                         GroqException ex,
@@ -151,6 +140,28 @@ public class GlobalExceptionHandler {
                 return buildError(
                                 HttpStatus.INTERNAL_SERVER_ERROR,
                                 "An unexpected error occurred.",
+                                request);
+        }
+
+        @ExceptionHandler(ConversationNotFoundException.class)
+        public ResponseEntity<ApiError> handleConversationNotFoundException(
+                        ConversationNotFoundException ex,
+                        HttpServletRequest request) {
+
+                return buildError(
+                                HttpStatus.NOT_FOUND,
+                                ex.getMessage(),
+                                request);
+        }
+
+        @ExceptionHandler(DocumentNotFoundException.class)
+        public ResponseEntity<ApiError> handleDocumentNotFoundException(
+                        DocumentNotFoundException ex,
+                        HttpServletRequest request) {
+
+                return buildError(
+                                HttpStatus.NOT_FOUND,
+                                ex.getMessage(),
                                 request);
         }
 

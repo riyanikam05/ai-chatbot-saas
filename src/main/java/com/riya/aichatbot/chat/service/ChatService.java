@@ -1,14 +1,16 @@
+
 package com.riya.aichatbot.chat.service;
 
-import com.riya.aichatbot.ai.service.ChromaService;
+import com.riya.aichatbot.ai.service.GeminiEmbeddingService;
 import com.riya.aichatbot.ai.service.GroqService;
-import com.riya.aichatbot.ai.service.OllamaService;
 import com.riya.aichatbot.auth.entity.User;
 import com.riya.aichatbot.auth.repository.UserRepository;
 import com.riya.aichatbot.chat.dto.ChatResponse;
 import com.riya.aichatbot.chat.entity.Conversation;
 import com.riya.aichatbot.chat.entity.Message;
 import com.riya.aichatbot.chat.repository.MessageRepository;
+import com.riya.aichatbot.document.repository.DocumentChunkRepository;
+
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,23 +21,23 @@ import java.util.Map;
 @Service
 public class ChatService {
 
-        private final OllamaService ollamaService;
-        private final ChromaService chromaService;
+        private final GeminiEmbeddingService geminiEmbeddingService;
+        private final DocumentChunkRepository documentChunkRepository;
         private final GroqService groqService;
         private final UserRepository userRepository;
         private final ConversationService conversationService;
         private final MessageRepository messageRepository;
 
         public ChatService(
-                        OllamaService ollamaService,
-                        ChromaService chromaService,
+                        GeminiEmbeddingService geminiEmbeddingService,
+                        DocumentChunkRepository documentChunkRepository,
                         GroqService groqService,
                         UserRepository userRepository,
                         ConversationService conversationService,
                         MessageRepository messageRepository) {
 
-                this.ollamaService = ollamaService;
-                this.chromaService = chromaService;
+                this.geminiEmbeddingService = geminiEmbeddingService;
+                this.documentChunkRepository = documentChunkRepository;
                 this.groqService = groqService;
                 this.userRepository = userRepository;
                 this.conversationService = conversationService;
@@ -52,34 +54,28 @@ public class ChatService {
                 User user = userRepository.findByEmail(authentication.getName())
                                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-                // Resolve the conversation: reuse an existing one (verifying
-                // ownership) or create a new one for this question.
+                // Resolve conversation and verify ownership
                 Conversation conversation = (conversationId != null)
                                 ? conversationService.getConversation(conversationId, user)
                                 : conversationService.createConversation(user, question);
 
-                // Save the user's question as a Message right away, so it's
-                // recorded even if generation fails below.
+                // Save user's question
                 messageRepository.save(Message.builder()
                                 .conversationId(conversation.getId())
                                 .role("user")
                                 .content(question)
                                 .build());
 
-                // Generate embedding for the user's question
-                List<Double> embedding = ollamaService.generateEmbedding(question);
+                // Generate Gemini embedding for the question
+                List<Double> embedding = geminiEmbeddingService.generateQueryEmbedding(question);
 
-                // Get Chroma collection
-                String collectionId = chromaService.getCollectionId();
-
-                // Search only this user's document chunks
-                List<String> chunks = chromaService.searchRelevantChunks(
-                                collectionId,
+                // Search only the logged-in user's document chunks
+                List<String> chunks = documentChunkRepository.searchRelevantChunks(
                                 user.getId(),
                                 embedding,
                                 3);
 
-                // No relevant context found
+                // Handle missing context
                 if (chunks.isEmpty()) {
 
                         String noContextAnswer = "I couldn't find any relevant information in your uploaded documents.";
@@ -97,7 +93,7 @@ public class ChatService {
                                         List.of());
                 }
 
-                // Build context
+                // Build context from retrieved chunks
                 String context = String.join("\n\n", chunks);
 
                 String prompt = """
@@ -119,13 +115,14 @@ public class ChatService {
                                 %s
                                 """.formatted(context, question);
 
+                // Generate answer using Groq
                 String answer = groqService.chat(
                                 List.of(
                                                 Map.of(
                                                                 "role", "user",
                                                                 "content", prompt)));
 
-                // Save the assistant's answer as a Message
+                // Save assistant's answer
                 messageRepository.save(Message.builder()
                                 .conversationId(conversation.getId())
                                 .role("assistant")

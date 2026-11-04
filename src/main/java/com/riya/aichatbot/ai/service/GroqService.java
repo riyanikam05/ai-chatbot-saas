@@ -35,7 +35,6 @@ public class GroqService {
     }
 
     public String chat(List<Map<String, String>> messageHistory) {
-        System.out.println("Groq model = " + model);
 
         String url = baseUrl + "/chat/completions";
 

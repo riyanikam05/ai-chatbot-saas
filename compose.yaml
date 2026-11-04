@@ -1,9 +1,7 @@
-version: "3.9"
 
 services:
-
   postgres:
-    image: postgres:16-alpine
+    image: pgvector/pgvector:pg16
     container_name: chatbot-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-mydatabase}
@@ -20,32 +18,5 @@ services:
       retries: 5
     restart: unless-stopped
 
-  redis:
-    image: redis:7-alpine
-    container_name: chatbot-redis
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: chatbot-chromadb
-    ports:
-      - "8000:8000"
-    volumes:
-      - chroma-data:/chroma/chroma
-    restart: unless-stopped
-
-  ollama:
-    image: ollama/ollama:latest
-    container_name: chatbot-ollama
-    ports:
-      - "11434:11434"
-    volumes:
-      - ollama-data:/root/.ollama
-    restart: unless-stopped
-
 volumes:
   postgres-data:
-  chroma-data:
-  ollama-data:

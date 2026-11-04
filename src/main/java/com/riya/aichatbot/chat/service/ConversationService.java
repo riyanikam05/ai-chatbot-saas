@@ -4,6 +4,7 @@ import com.riya.aichatbot.auth.entity.User;
 import com.riya.aichatbot.chat.entity.Conversation;
 import com.riya.aichatbot.chat.repository.ConversationRepository;
 import org.springframework.stereotype.Service;
+import com.riya.aichatbot.exception.ConversationNotFoundException;
 
 import java.util.List;
 
@@ -39,13 +40,11 @@ public class ConversationService {
         return conversationRepository.findByUserOrderByUpdatedAtDesc(user);
     }
 
-    public Conversation getConversation(
-            Long id,
-            User user) {
+    public Conversation getConversation(Long id, User user) {
 
         return conversationRepository
                 .findByIdAndUser(id, user)
-                .orElseThrow(() -> new RuntimeException("Conversation not found"));
+                .orElseThrow(() -> new ConversationNotFoundException("Conversation not found"));
     }
 
     public void deleteConversation(
