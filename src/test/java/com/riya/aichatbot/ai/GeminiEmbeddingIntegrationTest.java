@@ -2,77 +2,82 @@
 package com.riya.aichatbot.ai;
 
 import com.riya.aichatbot.ai.service.GeminiEmbeddingService;
-
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.web.client.RestClient;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
+@EnabledIfSystemProperty(named = "gemini.integration", matches = "true")
 class GeminiEmbeddingIntegrationTest {
 
-    private static GeminiEmbeddingService embeddingService;
+        private static GeminiEmbeddingService embeddingService;
 
-    @BeforeAll
-    static void setUp() {
+        @BeforeAll
+        static void setUp() {
+                String apiKey = System.getenv("GEMINI_API_KEY");
 
-        String apiKey = System.getenv("GEMINI_API_KEY");
+                assertNotNull(
+                                apiKey,
+                                "GEMINI_API_KEY environment variable must be set to run Gemini integration tests");
 
-        assertNotNull(apiKey, "GEMINI_API_KEY environment variable is missing.");
-        assertFalse(apiKey.isBlank(), "GEMINI_API_KEY is empty.");
+                assertFalse(
+                                apiKey.isBlank(),
+                                "GEMINI_API_KEY must not be blank");
 
-        embeddingService = new GeminiEmbeddingService(
-                RestClient.builder(),
-                apiKey,
-                "gemini-embedding-001",
-                768);
-    }
+                embeddingService = new GeminiEmbeddingService(
+                                RestClient.builder(),
+                                apiKey,
+                                "gemini-embedding-001",
+                                768);
+        }
 
-    @Test
-    void testGeminiDocumentEmbedding() {
+        @Test
+        void testGeminiDocumentEmbedding() {
+                String text = "This is a test document for Gemini embeddings.";
 
-        String sampleText = "Artificial intelligence helps computers understand human language.";
+                List<Double> embedding = embeddingService.generateDocumentEmbedding(text);
 
-        List<Double> embedding = embeddingService.generateDocumentEmbedding(sampleText);
+                assertNotNull(embedding, "Document embedding should not be null");
+                assertEquals(768, embedding.size(), "Embedding should contain 768 dimensions");
 
-        assertNotNull(embedding);
-        assertEquals(768, embedding.size());
+                assertTrue(
+                                embedding.stream().allMatch(Double::isFinite),
+                                "All embedding values should be finite");
 
-        assertTrue(
-                embedding.stream().allMatch(
-                        value -> value != null && Double.isFinite(value)),
-                "Embedding contains invalid values.");
+                double norm = Math.sqrt(
+                                embedding.stream()
+                                                .mapToDouble(value -> value * value)
+                                                .sum());
 
-        double norm = Math.sqrt(
-                embedding.stream()
-                        .mapToDouble(value -> value * value)
-                        .sum());
+                assertEquals(
+                                1.0,
+                                norm,
+                                0.000001,
+                                "Document embedding should be normalized");
 
-        assertEquals(1.0, norm, 0.000001,
-                "Embedding should be normalized.");
+                System.out.println("Gemini document embedding test passed.");
+                System.out.println("Embedding dimensions: " + embedding.size());
+                System.out.println("Embedding norm: " + norm);
+        }
 
-        System.out.println("Gemini document embedding test passed.");
-        System.out.println("Dimensions: " + embedding.size());
-        System.out.println("Normalized vector length: " + norm);
-    }
+        @Test
+        void testGeminiQueryEmbedding() {
+                String query = "How does a retrieval augmented generation system work?";
 
-    @Test
-    void testGeminiQueryEmbedding() {
+                List<Double> embedding = embeddingService.generateQueryEmbedding(query);
 
-        String sampleText = "How does artificial intelligence work?";
+                assertNotNull(embedding, "Query embedding should not be null");
+                assertEquals(768, embedding.size(), "Embedding should contain 768 dimensions");
 
-        List<Double> embedding = embeddingService.generateQueryEmbedding(sampleText);
+                assertTrue(
+                                embedding.stream().allMatch(Double::isFinite),
+                                "All embedding values should be finite");
 
-        assertNotNull(embedding);
-        assertEquals(768, embedding.size());
-
-        assertTrue(
-                embedding.stream().allMatch(
-                        value -> value != null && Double.isFinite(value)),
-                "Embedding contains invalid values.");
-
-        System.out.println("Gemini query embedding test passed.");
-    }
+                System.out.println("Gemini query embedding test passed.");
+                System.out.println("Embedding dimensions: " + embedding.size());
+        }
 }
