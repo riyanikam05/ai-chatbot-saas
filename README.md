@@ -1,39 +1,35 @@
 # AI Chatbot SaaS
 
-An AI-powered chatbot SaaS backend built with **Java 21 and Spring Boot** that allows users to upload PDF documents and ask questions about their content using a **Retrieval-Augmented Generation (RAG)** pipeline.
+An AI-powered chatbot SaaS backend built with Java 21 and Spring Boot that allows authenticated users to upload PDF documents and ask questions about their content using a Retrieval-Augmented Generation (RAG) pipeline.
 
-The application combines **Ollama embeddings**, **ChromaDB vector search**, and **Groq LLM inference** to generate context-aware answers from the user's uploaded documents.
-
----
+The application combines Google's Gemini Embedding API, PostgreSQL with pgvector for vector storage and semantic search, and Groq LLM inference to generate context-aware answers from uploaded documents.
 
 ## 🚀 Features
 
 - 🔐 JWT-based authentication
 - 👤 User registration, login, and profile APIs
 - 🔒 BCrypt password hashing
-- 📄 PDF document upload
+- 📄 PDF document upload and management
 - 🔎 PDF text extraction using Apache PDFBox
 - ✂️ Text chunking for document processing
-- 🧠 Local embeddings using Ollama
-- 🗄️ Vector storage and similarity search using ChromaDB
+- 🧠 Embedding generation using Google Gemini
+- 🗄️ Vector storage and similarity search using PostgreSQL with pgvector
 - 🤖 LLM-powered answers using Groq
 - 💬 Conversation and message history
 - 🔒 User-level document and conversation isolation
-- 🐳 Dockerized PostgreSQL, ChromaDB, and Ollama
+- 🐳 Dockerized PostgreSQL infrastructure
 - 🗃️ Database migrations using Flyway
 - 📖 Swagger / OpenAPI documentation
-- ❤️ Spring Boot Actuator health endpoints
 - ⚠️ Centralized exception handling
 - 🧪 Unit and integration testing support
-
----
+- ☁️ Cloud deployment using Render and Neon PostgreSQL
 
 ## 🏗️ Architecture
 
 ```text
                          ┌─────────────────────┐
                          │       Client        │
-                         │   Postman / API     │
+                         │   Postman / Swagger │
                          └──────────┬──────────┘
                                     │
                                     ▼
@@ -50,7 +46,6 @@ The application combines **Ollama embeddings**, **ChromaDB vector search**, and 
           │              │  │ Security     │  │ Authentication│
           └──────────────┘  └──────────────┘  └──────────────┘
                                     │
-                                    │
                          Document Processing
                                     │
                                     ▼
@@ -66,14 +61,14 @@ The application combines **Ollama embeddings**, **ChromaDB vector search**, and 
                                     │
                                     ▼
                          ┌─────────────────────┐
-                         │      Ollama         │
+                         │   Gemini API        │
                          │     Embeddings      │
-                         │  nomic-embed-text   │
                          └──────────┬──────────┘
                                     │
                                     ▼
                          ┌─────────────────────┐
-                         │     ChromaDB        │
+                         │    PostgreSQL       │
+                         │      pgvector       │
                          │   Vector Storage    │
                          └──────────┬──────────┘
                                     │
@@ -91,11 +86,9 @@ The application combines **Ollama embeddings**, **ChromaDB vector search**, and 
                          └─────────────────────┘
 ```
 
----
-
 ## 🧠 RAG Pipeline
 
-The core of the application is a **Retrieval-Augmented Generation (RAG)** pipeline.
+The core of the application is a Retrieval-Augmented Generation (RAG) pipeline.
 
 ```text
 PDF Upload
@@ -107,10 +100,10 @@ Extract Text
 Split Into Chunks
     │
     ▼
-Generate Embeddings
+Generate Embeddings using Gemini
     │
     ▼
-Store Vectors in ChromaDB
+Store Vectors in PostgreSQL (pgvector)
     │
     ▼
 User Asks Question
@@ -140,28 +133,22 @@ Save Conversation + Message
 Return Response
 ```
 
----
-
 ## 🔍 How RAG Works
 
 ### 1. Document Upload
 
-An authenticated user uploads a PDF through:
-
-```http
-POST /api/v1/documents/upload
-```
+An authenticated user uploads a PDF through the document upload API.
 
 The application:
 
-1. Validates the uploaded file.
-2. Generates a unique stored filename.
-3. Saves the PDF locally.
-4. Stores document metadata in PostgreSQL.
-5. Extracts text using Apache PDFBox.
-6. Splits the extracted text into chunks.
-7. Generates embeddings using Ollama.
-8. Stores the embeddings and metadata in ChromaDB.
+- Validates the uploaded file.
+- Generates a unique stored filename.
+- Saves the PDF locally.
+- Stores document metadata in PostgreSQL.
+- Extracts text using Apache PDFBox.
+- Splits the extracted text into chunks.
+- Generates embeddings using Google's Gemini Embedding API.
+- Stores embeddings and document metadata in PostgreSQL using pgvector.
 
 ### 2. User Question
 
@@ -171,13 +158,13 @@ The user sends a question through:
 POST /api/chat/ask
 ```
 
-The question is converted into an embedding using Ollama.
+The question is converted into an embedding using Gemini.
 
 ### 3. Semantic Search
 
-The question embedding is sent to ChromaDB.
+The question embedding is passed to PostgreSQL with pgvector.
 
-ChromaDB performs a similarity search and retrieves the most relevant document chunks.
+PostgreSQL performs cosine similarity search to retrieve the most relevant document chunks.
 
 The application currently uses:
 
@@ -185,25 +172,21 @@ The application currently uses:
 Top K = 3
 ```
 
+Retrieval is restricted to documents belonging to the authenticated user.
+
 ### 4. Context Construction
 
 The retrieved chunks are combined into a context that is passed to the LLM.
 
 The prompt instructs the model to answer using the retrieved document context.
 
-If no relevant chunks are found, the API returns:
-
-```text
-I couldn't find any relevant information in your uploaded documents.
-```
+If no relevant chunks are found, the application returns an appropriate response indicating that relevant information could not be found in the uploaded documents.
 
 ### 5. LLM Generation
 
 The retrieved context and user's question are sent to Groq for answer generation.
 
-The generated answer is then saved as an assistant message and returned to the client.
-
----
+The generated answer is saved as an assistant message and returned to the client.
 
 ## 🛠️ Tech Stack
 
@@ -218,16 +201,16 @@ The generated answer is then saved as an assistant message and returned to the c
 | Database | PostgreSQL 16 |
 | Database Migration | Flyway |
 | ORM | Spring Data JPA / Hibernate |
-| Vector Database | ChromaDB |
-| Embeddings | Ollama + `nomic-embed-text` |
-| LLM | Groq |
+| Vector Database | PostgreSQL with pgvector |
+| Embeddings | Google Gemini API (`gemini-embedding-001`) |
+| Embedding Dimensions | 768 |
+| LLM | Groq API |
 | PDF Processing | Apache PDFBox |
 | API Documentation | SpringDoc OpenAPI / Swagger |
-| Monitoring | Spring Boot Actuator |
 | Containerization | Docker / Docker Compose |
-| Testing | JUnit, Spring Boot Test, Mockito, WireMock |
-
----
+| Cloud Deployment | Render |
+| Managed Database | Neon PostgreSQL |
+| Testing | JUnit, Spring Boot Test |
 
 ## 📁 Project Structure
 
@@ -237,32 +220,36 @@ ai-chatbot-saas/
 ├── src/
 │   ├── main/
 │   │   ├── java/
-│   │   │   └── ...
+│   │   │   └── com/riya/aichatbot/
+│   │   │       ├── ai/
+│   │   │       ├── auth/
+│   │   │       ├── chat/
+│   │   │       ├── config/
+│   │   │       ├── conversation/
+│   │   │       ├── document/
+│   │   │       ├── exception/
+│   │   │       └── user/
 │   │   │
 │   │   └── resources/
 │   │       ├── db/
 │   │       │   └── migration/
-│   │       │       └── V1__initial_schema.sql
-│   │       │
 │   │       └── application.yml
 │   │
 │   └── test/
 │
 ├── uploads/
-├── compose.yaml
+├── docker-compose.yml
+├── Dockerfile
 ├── pom.xml
-├── .env
 ├── .gitignore
 └── README.md
 ```
 
----
-
 ## 🔐 Authentication
 
-Authentication is implemented using **Spring Security + JWT**.
+Authentication is implemented using Spring Security and JWT.
 
-Passwords are hashed using **BCrypt** before being stored in PostgreSQL.
+Passwords are hashed using BCrypt before being stored in PostgreSQL.
 
 JWT tokens are provided using:
 
@@ -321,11 +308,9 @@ Requires:
 Authorization: Bearer <JWT_TOKEN>
 ```
 
----
-
 ## 📄 Document APIs
 
-Base URL:
+### Base URL
 
 ```text
 /api/v1/documents
@@ -339,7 +324,7 @@ POST /api/v1/documents/upload
 
 Content type:
 
-```http
+```text
 multipart/form-data
 ```
 
@@ -366,9 +351,9 @@ Extracted Text
  ↓
 Text Chunks
  ↓
-Ollama Embeddings
+Gemini Embeddings
  ↓
-ChromaDB
+PostgreSQL (pgvector)
 ```
 
 ### List Documents
@@ -381,11 +366,19 @@ Requires authentication.
 
 Returns documents belonging to the authenticated user.
 
----
+### Delete Document
+
+```http
+DELETE /api/v1/documents/{id}
+```
+
+Requires authentication.
+
+Deletes the specified document belonging to the authenticated user, including its associated document chunks.
 
 ## 💬 Chat APIs
 
-Base URL:
+### Base URL
 
 ```text
 /api/chat
@@ -427,11 +420,11 @@ If it is omitted, a new conversation is created.
 }
 ```
 
----
+The actual response fields depend on the API response model.
 
 ## 🗨️ Conversation APIs
 
-Base URL:
+### Base URL
 
 ```text
 /api/conversations
@@ -449,11 +442,11 @@ All conversation endpoints require authentication.
 
 Users can only access their own conversations.
 
----
+Conversation ownership is validated before retrieving or modifying conversation resources.
 
 ## 🗃️ Database Design
 
-The application uses PostgreSQL for persistent application data.
+The application uses PostgreSQL for persistent application data and vector storage.
 
 ### Users
 
@@ -523,25 +516,35 @@ documents
 ├── file_path
 ├── file_size
 ├── mime_type
-├── status
-├── error_message
-├── chunk_count
 └── uploaded_at
 ```
 
 Documents belong to individual users.
 
----
+### Document Chunks
+
+```text
+document_chunks
+├── id
+├── document_id
+├── user_id
+├── chunk_index
+├── content
+├── embedding
+└── created_at
+```
+
+The `embedding` column uses the pgvector `VECTOR(768)` data type.
+
+Document chunks are associated with their parent documents and users.
 
 ## 🐳 Docker Infrastructure
 
-The project uses Docker Compose for local infrastructure.
+The project uses Docker Compose for local PostgreSQL infrastructure.
 
 | Service | Image | Port |
 |---|---|---|
-| PostgreSQL | `postgres:16-alpine` | `5434 → 5432` |
-| ChromaDB | `chromadb/chroma:latest` | `8000` |
-| Ollama | `ollama/ollama:latest` | `11434` |
+| PostgreSQL with pgvector | `pgvector/pgvector:pg16` | `5434 → 5432` |
 
 ### Start Infrastructure
 
@@ -549,7 +552,7 @@ The project uses Docker Compose for local infrastructure.
 docker compose up -d
 ```
 
-Check running containers:
+### Check Running Containers
 
 ```bash
 docker compose ps
@@ -567,95 +570,58 @@ docker compose down
 docker compose logs -f
 ```
 
-For a specific service:
+For PostgreSQL:
 
 ```bash
 docker compose logs -f postgres
 ```
 
-```bash
-docker compose logs -f chromadb
-```
-
-```bash
-docker compose logs -f ollama
-```
-
----
-
-## 🧠 Ollama Setup
-
-The application uses:
-
-```text
-nomic-embed-text
-```
-
-for document and question embeddings.
-
-Pull the embedding model into the Ollama container:
-
-```bash
-docker exec chatbot-ollama ollama pull nomic-embed-text
-```
-
-Verify installed models:
-
-```bash
-docker exec chatbot-ollama ollama list
-```
-
-The application is configured to use:
-
-```yaml
-ollama:
-  base-url: http://localhost:11434
-  model: llama3.2
-  embedding-model: nomic-embed-text
-```
-
----
-
 ## ⚙️ Configuration
 
-Create a `.env` file in the project root.
+Configure the following environment variables before starting the application.
 
-Example:
+| Variable | Description |
+|---|---|
+| `SPRING_DATASOURCE_URL` | PostgreSQL JDBC connection URL |
+| `SPRING_DATASOURCE_USERNAME` | Database username |
+| `SPRING_DATASOURCE_PASSWORD` | Database password |
+| `JWT_SECRET` | Secret key used for JWT signing |
+| `GEMINI_API_KEY` | Google Gemini API key |
+| `GROQ_API_KEY` | Groq API key |
+| `GROQ_BASE_URL` | Groq API base URL |
+| `GROQ_MODEL` | Groq model identifier |
+
+### Example Configuration
+
+For local development:
 
 ```env
-POSTGRES_DB=mydatabase
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_secure_password
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5434/mydatabase
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=postgres
 
-JWT_SECRET=your_base64_encoded_jwt_secret
+JWT_SECRET=your_generated_jwt_secret
+
+GEMINI_API_KEY=your_gemini_api_key
 
 GROQ_API_KEY=your_groq_api_key
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_MODEL=openai/gpt-oss-20b
-
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-
-CHROMA_BASE_URL=http://localhost:8000
-CHROMA_TENANT=default_tenant
-CHROMA_DATABASE=default_database
-CHROMA_COLLECTION=documents
 ```
 
-> **Never commit `.env` or API keys to GitHub.**
+Provide your own API keys and a sufficiently long, randomly generated JWT secret.
 
----
+Never commit `.env` or actual API keys to GitHub.
 
 ## 🔑 JWT Configuration
 
 JWT configuration is provided through:
 
 ```env
-JWT_SECRET=your_base64_encoded_jwt_secret
+JWT_SECRET=your_generated_jwt_secret
 ```
 
-The application Base64-decodes the secret and uses it for HS256 JWT signing.
+The application uses JWT for stateless authentication.
 
 JWT expiration is configured for:
 
@@ -669,42 +635,30 @@ which corresponds to:
 24 hours
 ```
 
----
-
 ## 🗄️ PostgreSQL Configuration
 
 The application connects to PostgreSQL using:
 
 ```text
-jdbc:postgresql://127.0.0.1:5434/${POSTGRES_DB:mydatabase}
+jdbc:postgresql://localhost:5434/mydatabase
 ```
 
-Default configuration:
+Default local development configuration:
 
 ```text
-Host:     127.0.0.1
+Host:     localhost
 Port:     5434
 Database: mydatabase
 User:     postgres
 ```
 
-The Docker container internally exposes PostgreSQL on:
+The Docker container internally exposes PostgreSQL on port `5432`, while the host uses port `5434`.
 
-```text
-5432
-```
-
-while the host uses:
-
-```text
-5434
-```
-
----
+For production, the application connects to Neon PostgreSQL through environment-based configuration.
 
 ## 🧬 Database Migrations
 
-Flyway is used for database schema management.
+Flyway is used for version-controlled database schema management.
 
 Migrations are located under:
 
@@ -715,16 +669,17 @@ src/main/resources/db/migration/
 Flyway configuration:
 
 ```yaml
-flyway:
-  enabled: true
-  locations: classpath:db/migration
-  out-of-order: false
-  validate-on-migrate: true
+spring:
+  flyway:
+    enabled: true
+    locations: classpath:db/migration
+    out-of-order: false
+    validate-on-migrate: true
+    baseline-on-migrate: true
+    baseline-version: 0
 ```
 
-On application startup, Flyway validates and applies pending migrations.
-
----
+On application startup, Flyway validates the migration history and applies pending migrations.
 
 ## 🚀 Getting Started
 
@@ -737,36 +692,27 @@ cd ai-chatbot-saas
 
 ### 2. Configure Environment Variables
 
-Create:
+Create a `.env` file in the project root for local configuration.
 
-```text
-.env
-```
-
-Add your credentials and service configuration:
+Example:
 
 ```env
-POSTGRES_DB=mydatabase
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=your_secure_password
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5434/mydatabase
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=postgres
 
-JWT_SECRET=your_base64_encoded_jwt_secret
+JWT_SECRET=your_generated_jwt_secret
+
+GEMINI_API_KEY=your_gemini_api_key
 
 GROQ_API_KEY=your_groq_api_key
 GROQ_BASE_URL=https://api.groq.com/openai/v1
 GROQ_MODEL=openai/gpt-oss-20b
-
-OLLAMA_BASE_URL=http://localhost:11434
-OLLAMA_MODEL=llama3.2
-OLLAMA_EMBEDDING_MODEL=nomic-embed-text
-
-CHROMA_BASE_URL=http://localhost:8000
-CHROMA_TENANT=default_tenant
-CHROMA_DATABASE=default_database
-CHROMA_COLLECTION=documents
 ```
 
-### 3. Start Docker Services
+Use your own credentials. Do not commit this file.
+
+### 3. Start PostgreSQL
 
 ```bash
 docker compose up -d
@@ -778,47 +724,43 @@ Verify:
 docker compose ps
 ```
 
-### 4. Pull the Ollama Embedding Model
+### 4. Build the Application
 
-```bash
-docker exec chatbot-ollama ollama pull nomic-embed-text
-```
-
-### 5. Build the Application
-
-#### Windows
+**Windows:**
 
 ```powershell
 .\mvnw.cmd clean package
 ```
 
-#### Linux / macOS
+**Linux / macOS:**
 
 ```bash
 ./mvnw clean package
 ```
 
-### 6. Run the Application
+### 5. Run the Application
 
-#### Windows
+Set the required environment variables in your terminal.
+
+**Windows:**
 
 ```powershell
 .\mvnw.cmd spring-boot:run
 ```
 
-#### Linux / macOS
+**Linux / macOS:**
 
 ```bash
 ./mvnw spring-boot:run
 ```
 
-The application runs on:
+Flyway automatically validates and applies pending migrations during application startup.
+
+The application runs locally on:
 
 ```text
 http://localhost:8081
 ```
-
----
 
 ## 📖 Swagger / OpenAPI
 
@@ -834,29 +776,9 @@ OpenAPI specification:
 http://localhost:8081/v3/api-docs
 ```
 
-Swagger provides interactive documentation for the API.
+Swagger provides interactive documentation for the available REST APIs.
 
 JWT bearer authentication is configured in the OpenAPI configuration.
-
----
-
-## ❤️ Health Monitoring
-
-Spring Boot Actuator exposes:
-
-```text
-/actuator/health
-/actuator/info
-/actuator/mappings
-```
-
-Health endpoint:
-
-```text
-http://localhost:8081/actuator/health
-```
-
----
 
 ## 🔒 Security
 
@@ -882,13 +804,9 @@ POST /api/auth/login
 /swagger-ui/**
 /swagger-ui.html
 /v3/api-docs/**
-
-/actuator/**
 ```
 
-All other endpoints require authentication.
-
----
+All other protected application endpoints require authentication.
 
 ## 👤 User Data Isolation
 
@@ -908,11 +826,9 @@ User B
  └── Messages
 ```
 
-User A cannot access User B's conversations or documents.
+User A cannot access User B's documents or conversations.
 
-Conversation ownership is validated before accessing or deleting conversations.
-
----
+Ownership is validated before accessing protected document and conversation resources.
 
 ## ⚠️ Error Handling
 
@@ -922,7 +838,7 @@ The application uses a centralized:
 GlobalExceptionHandler
 ```
 
-API errors are returned using a structured format.
+API errors are returned using a structured response format.
 
 Example:
 
@@ -938,96 +854,85 @@ Example:
 
 Custom exceptions include:
 
-```text
-ChromaException
-DocumentProcessingException
-EmailAlreadyExistsException
-EmbeddingGenerationException
-GroqException
-PdfExtractionException
-```
-
----
+- DocumentNotFoundException
+- DocumentProcessingException
+- ConversationNotFoundException
+- EmailAlreadyExistsException
+- EmbeddingGenerationException
+- GroqException
+- PdfExtractionException
 
 ## 🧪 Testing
 
-The project includes testing dependencies for:
+The project includes tests for key backend components and integrations, including:
 
 - Spring Boot testing
 - Spring Security testing
+- Authentication APIs
+- Gemini embedding generation
+- Groq response generation
+- PostgreSQL pgvector storage and retrieval
 - JUnit
-- Mockito
-- WireMock
 
 Run tests with:
 
-### Windows
+**Windows:**
 
 ```powershell
 .\mvnw.cmd test
 ```
 
-### Linux / macOS
+**Linux / macOS:**
 
 ```bash
 ./mvnw test
 ```
 
----
+Tests requiring external API credentials need the corresponding environment variables configured.
 
 ## 🧩 Key Components
 
 ### Authentication
 
-```text
-AuthController
-AuthService
-User
-UserRepository
-JwtService
-JwtAuthFilter
-SecurityConfig
-```
+- AuthController
+- AuthService
+- User
+- UserRepository
+- JwtService
+- JwtAuthFilter
+- SecurityConfig
 
 ### Chat
 
-```text
-ChatController
-ChatService
-ChatRequest
-ChatResponse
-ConversationService
-Message
-```
+- ChatController
+- ChatService
+- ChatRequest
+- ChatResponse
+- ConversationService
+- Message
 
 ### Documents
 
-```text
-DocumentController
-DocumentService
-PdfExtractorService
-TextChunkingService
-Document
-```
+- DocumentController
+- DocumentService
+- PdfExtractorService
+- TextChunkingService
+- Document
 
-### Vector Search
+### Embeddings and Vector Search
 
-```text
-ChromaDB
-Ollama Embeddings
-Semantic Similarity Search
-Document Metadata Filtering
-```
+- GeminiEmbeddingService
+- DocumentChunkRepository
+- PostgreSQL with pgvector
+- Semantic Similarity Search
+- Cosine Distance Search
 
 ### LLM
 
-```text
-Groq API
-```
+- GroqService
+- Groq API
 
-The LLM receives the retrieved document context and user question.
-
----
+The LLM receives the retrieved document context and user question to generate a context-aware response.
 
 ## 📐 RAG Configuration
 
@@ -1035,19 +940,12 @@ The application uses the following RAG-related configuration:
 
 | Configuration | Value |
 |---|---|
-| Top K | `3` |
-| Temperature | `0.5` |
-| Max Tokens | `150` |
-| Embedding Model | `nomic-embed-text` |
+| Top K | 3 |
+| Embedding Model | `gemini-embedding-001` |
+| Embedding Dimensions | 768 |
+| Vector Storage | PostgreSQL with pgvector |
+| Similarity Metric | Cosine Distance |
 | LLM | Groq |
-
-These defaults are represented in:
-
-```text
-AppConstants
-```
-
----
 
 ## 🔄 Complete User Flow
 
@@ -1070,10 +968,10 @@ AppConstants
 6. Text divided into chunks
         │
         ▼
-7. Embeddings generated
+7. Gemini embeddings generated
         │
         ▼
-8. Embeddings stored in ChromaDB
+8. Embeddings stored in pgvector
         │
         ▼
 9. User asks a question
@@ -1082,7 +980,7 @@ AppConstants
 10. Question embedding generated
         │
         ▼
-11. ChromaDB performs semantic search
+11. PostgreSQL performs semantic search
         │
         ▼
 12. Relevant chunks retrieved
@@ -1100,8 +998,6 @@ AppConstants
 16. Answer returned to user
 ```
 
----
-
 ## 📐 Design Decisions
 
 ### PostgreSQL
@@ -1113,18 +1009,21 @@ PostgreSQL is used for structured application data such as:
 - Messages
 - Documents
 - Document metadata
+- Document chunks
 
-### ChromaDB
+### pgvector
 
-ChromaDB is used for vector storage and semantic similarity search.
+pgvector is used to store vector embeddings directly in PostgreSQL.
 
-This separates relational application data from vector search data.
+This allows relational application data and vector data to be managed within the same database.
 
-### Ollama
+Semantic similarity search is performed using cosine distance.
 
-Ollama provides local embedding generation.
+### Gemini
 
-This allows document embeddings to be generated locally without relying on an external embedding service.
+Google Gemini Embedding API is used to generate vector embeddings for document chunks and user queries.
+
+The application uses the `gemini-embedding-001` model with 768-dimensional embeddings.
 
 ### Groq
 
@@ -1136,23 +1035,47 @@ Flyway provides version-controlled database migrations instead of relying on aut
 
 ### JWT
 
-JWT provides stateless authentication for the REST API.
-
----
+JWT provides stateless authentication for the REST API and supports user-level resource access control.
 
 ## 📦 Docker Volumes
 
-Docker volumes are used to persist service data:
+Docker volumes are used to persist local PostgreSQL data.
 
 ```text
 postgres-data
-chroma-data
-ollama-data
 ```
 
-This allows container data to survive container restarts.
+This allows database data to survive container restarts.
 
----
+## ☁️ Deployment
+
+The backend is deployed on Render, with Neon PostgreSQL used as the managed cloud database.
+
+### Deployment Configuration
+
+- Java 21 runtime
+- Spring Boot application
+- Render web service
+- Neon PostgreSQL
+- PostgreSQL with pgvector extension
+- Flyway database migrations
+- Environment-based configuration
+- Render-provided application port
+
+### Production Environment Variables
+
+Configure the following variables in the Render dashboard:
+
+```text
+SPRING_DATASOURCE_URL
+SPRING_DATASOURCE_USERNAME
+SPRING_DATASOURCE_PASSWORD
+JWT_SECRET
+GEMINI_API_KEY
+GROQ_API_KEY
+```
+
+Never commit production credentials or database connection strings to GitHub.
 
 ## 🛡️ Security Considerations
 
@@ -1166,44 +1089,39 @@ Before deploying this application publicly:
 - Configure CORS appropriately when adding a frontend.
 - Configure production database credentials separately.
 - Store uploaded files securely.
-- Add file type validation and malware scanning for production use.
+- Validate uploaded file types and sizes.
 - Configure appropriate rate limiting.
 - Restrict actuator endpoints in production.
 - Avoid exposing sensitive exception details.
-
----
 
 ## 📊 Project Highlights
 
 This project demonstrates practical experience with:
 
-```text
-Java
-Spring Boot
-Spring Security
-JWT Authentication
-REST APIs
-Spring Data JPA
-PostgreSQL
-Flyway
-Docker
-Docker Compose
-Ollama
-Embeddings
-Vector Databases
-ChromaDB
-RAG
-LLM Integration
-Groq API
-PDF Processing
-Apache PDFBox
-Exception Handling
-OpenAPI / Swagger
-Actuator
-Testing
-```
-
----
+- Java
+- Spring Boot
+- Spring Security
+- JWT Authentication
+- REST APIs
+- Spring Data JPA
+- PostgreSQL
+- pgvector
+- Flyway
+- Docker
+- Docker Compose
+- Gemini API
+- Embeddings
+- Vector Databases
+- Semantic Search
+- RAG
+- LLM Integration
+- Groq API
+- PDF Processing
+- Apache PDFBox
+- Exception Handling
+- OpenAPI / Swagger
+- Testing
+- Cloud Deployment
 
 ## 💡 What This Project Demonstrates
 
@@ -1226,12 +1144,10 @@ LLM Inference
         +
 RAG
         +
-Dockerized Infrastructure
+Cloud Deployment
 ```
 
-The result is a backend capable of turning a collection of user-uploaded PDF documents into an interactive question-answering system.
-
----
+The result is a backend capable of turning user-uploaded PDF documents into an interactive question-answering system using semantic retrieval and LLM-generated responses.
 
 ## 👩‍💻 Author
 
@@ -1245,11 +1161,9 @@ Project:
 
 https://github.com/riyanikam05/ai-chatbot-saas
 
----
-
 ## ⭐ Summary
 
-**AI Chatbot SaaS** is a Java/Spring Boot backend that implements an end-to-end Retrieval-Augmented Generation workflow.
+AI Chatbot SaaS is a Java/Spring Boot backend that implements an end-to-end Retrieval-Augmented Generation workflow.
 
 ```text
 PDF
@@ -1258,9 +1172,9 @@ Text Extraction
  ↓
 Chunking
  ↓
-Embeddings
+Gemini Embeddings
  ↓
-ChromaDB
+PostgreSQL with pgvector
  ↓
 Semantic Retrieval
  ↓
@@ -1269,4 +1183,4 @@ Groq LLM
 Context-Aware Answer
 ```
 
-It combines backend engineering, authentication, databases, document processing, vector search, embeddings, LLM integration, RAG, and Dockerized infrastructure into a single application.
+It combines backend engineering, authentication, relational databases, document processing, vector search, embeddings, LLM integration, RAG, Dockerized infrastructure, and cloud deployment into a single application.
