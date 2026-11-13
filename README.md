@@ -1047,9 +1047,17 @@ postgres-data
 
 This allows database data to survive container restarts.
 
-## ☁️ Deployment
+## 🌐 Live Deployment
 
-The backend is deployed on Render, with Neon PostgreSQL used as the managed cloud database.
+**Backend API:** https://ai-chatbot-saas-ua0i.onrender.com
+
+**Local Swagger UI:**
+http://localhost:8081/swagger-ui/index.html
+
+**Live Swagger UI:**
+https://ai-chatbot-saas-ua0i.onrender.com/swagger-ui/index.html
+
+The backend is deployed on Render, with Neon PostgreSQL used for cloud database persistence.
 
 ### Deployment Configuration
 
